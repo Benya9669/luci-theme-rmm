@@ -1,0 +1,13 @@
+{
+  "luci-app-rmm-dashboard": {
+    "description": "Read router and RMM agent status",
+    "read": {
+      "ubus": {
+        "system": [ "board", "info" ],
+        "network.interface": [ "dump" ],
+        "service": [ "list" ]
+      },
+      "uci": [ "rmm-agent" ]
+    }
+  }
+}

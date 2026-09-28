@@ -1,0 +1,146 @@
+name: Build and release LuCI packages
+
+on:
+  push:
+    tags: ["luci-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing luci-vMAJOR.MINOR.PATCH tag
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  packages:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["24.10.7", "25.12.4"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check LuCI view and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check packages/luci-app-rmm-dashboard/htdocs/luci-static/resources/view/status/rmm-dashboard.js
+          python3 -m json.tool packages/luci-app-rmm-dashboard/root/usr/share/luci/menu.d/luci-app-rmm-dashboard.json >/dev/null
+          python3 -m json.tool packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json >/dev/null
+      - name: Validate package version
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^luci-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          version="${TAG#luci-v}"
+          test "$(sed -n 's/^PKG_VERSION:=//p' packages/luci-theme-rmm/Makefile)" = "$version"
+          test "$(sed -n 's/^PKG_VERSION:=//p' packages/luci-app-rmm-dashboard/Makefile)" = "$version"
+      - name: Resolve official SDK
+        id: sdk
+        env:
+          RELEASE: ${{ matrix.release }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          record="$(awk -F '\t' -v release="$RELEASE" '$1 == release && $2 == "ramips" && $3 == "mt7621" { print $4 " " $5; exit }' openwrt-sdk-lock.tsv)"
+          test -n "$record"
+          read -r sha256 url <<<"$record"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - name: Build LuCI packages
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: artifacts
+          push: false
+          outputs: type=local,dest=artifacts
+          build-args: |
+            OPENWRT_SDK_URL=${{ steps.sdk.outputs.url }}
+            OPENWRT_SDK_SHA256=${{ steps.sdk.outputs.sha256 }}
+          cache-from: type=gha,scope=luci-${{ matrix.release }}
+          cache-to: type=gha,mode=max,scope=luci-${{ matrix.release }}
+      - name: Verify artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd artifacts && sha256sum --check SHA256SUMS)
+          test "$(find artifacts -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) | wc -l)" -eq 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luci-${{ matrix.release }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 90
+
+  release:
+    needs: packages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: luci-*
+          path: artifacts
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir publish
+          for release in 24.10.7 25.12.4; do
+            (cd "artifacts/luci-${release}" && sha256sum --check SHA256SUMS)
+            for package in "artifacts/luci-${release}"/*.ipk "artifacts/luci-${release}"/*.apk; do
+              [ -f "$package" ] || continue
+              cp "$package" "publish/openwrt-${release}-$(basename "$package")"
+            done
+          done
+          test "$(find publish -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) | wc -l)" -eq 4
+          (cd publish && sha256sum ./* > SHA256SUMS)
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: publish/*
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "LuCI release already exists; tags are immutable" >&2
+            exit 1
+          fi
+          gh release create "$TAG" publish/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "OpenWrt RMM LuCI ${TAG#luci-v}" \
+            --notes "RMM LuCI theme and router dashboard. Install from the shared signed RMM feed after it imports this release."
+      - name: Trigger shared feed sync
+        env:
+          GH_TOKEN: ${{ secrets.RMM_FEED_DISPATCH_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          manifest_sha256="$(sha256sum publish/SHA256SUMS | cut -d ' ' -f 1)"
+          jq -n --arg tag "$TAG" --arg sha "$manifest_sha256" \
+            '{event_type:"luci-release",client_payload:{tag:$tag,manifest_sha256:$sha}}' \
+            > dispatch.json
+          gh api --method POST repos/Benya9669/openwrt-rmm/dispatches \
+            --input dispatch.json

@@ -1,0 +1,13 @@
+{
+	"admin/status/rmm-dashboard": {
+		"title": "RMM overview",
+		"order": 5,
+		"action": {
+			"type": "view",
+			"path": "status/rmm-dashboard"
+		},
+		"depends": {
+			"acl": [ "luci-app-rmm-dashboard" ]
+		}
+	}
+}
