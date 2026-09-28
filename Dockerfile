@@ -20,7 +20,15 @@ RUN test -n "$OPENWRT_SDK_URL" && test -n "$OPENWRT_SDK_SHA256" \
     && rm sdk.tar.zst
 
 WORKDIR /home/builder/sdk
-RUN ./scripts/feeds update -a \
+RUN sed -i \
+      -e 's#^src-git-full base #src-git base #' \
+      -e 's#https://git.openwrt.org/openwrt/openwrt.git#https://github.com/openwrt/openwrt.git#g' \
+      -e 's#https://git.openwrt.org/feed/packages.git#https://github.com/openwrt/packages.git#g' \
+      -e 's#https://git.openwrt.org/project/luci.git#https://github.com/openwrt/luci.git#g' \
+      -e 's#https://git.openwrt.org/feed/routing.git#https://github.com/openwrt/routing.git#g' \
+      -e 's#https://git.openwrt.org/feed/telephony.git#https://github.com/openwrt/telephony.git#g' \
+      feeds.conf.default \
+    && ./scripts/feeds update -a \
     && for package in luci-base luci-mod-status luci-theme-bootstrap; do \
         ./scripts/feeds install "$package"; \
        done
