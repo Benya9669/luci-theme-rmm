@@ -38,7 +38,12 @@ endef
 
 define Package/luci-theme-rmm/postinst
 #!/bin/sh
-[ -n "$${IPKG_INSTROOT}" ] || /etc/uci-defaults/30_luci-theme-rmm
+if [ -z "$${IPKG_INSTROOT}" ]; then
+	if [ -f /etc/uci-defaults/30_luci-theme-rmm ]; then
+		. /etc/uci-defaults/30_luci-theme-rmm
+		rm -f /etc/uci-defaults/30_luci-theme-rmm
+	fi
+fi
 exit 0
 endef
 
