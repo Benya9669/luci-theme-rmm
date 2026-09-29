@@ -21,13 +21,13 @@ function formatDuration(seconds) {
 	var days = Math.floor(seconds / 86400);
 	var hours = Math.floor(seconds % 86400 / 3600);
 	var minutes = Math.floor(seconds % 3600 / 60);
-	return (days ? '%dd '.format(days) : '') + '%dh %dm'.format(hours, minutes);
+	return (days ? _('%dd').format(days) + ' ' : '') + _('%dh %dm').format(hours, minutes);
 }
 
 function formatBytes(bytes) {
 	if (typeof bytes !== 'number' || !isFinite(bytes) || bytes < 0)
 		return _('Unavailable');
-	return (bytes / 1048576).toFixed(1) + ' MiB';
+	return _('%s MiB').format((bytes / 1048576).toFixed(1));
 }
 
 function item(label, value, state) {
@@ -108,14 +108,14 @@ return view.extend({
 			]),
 			section(_('RMM agent'), [
 				item(_('Status'), agentStatus, running ? 'ok' : enabled ? 'warning' : ''),
-				item(_('Heartbeat interval'), configReady ? '%s s'.format(uci.get('rmm-agent', 'main', 'interval_seconds') || '30') : _('Unavailable')),
-				item(_('Connectivity check interval'), configReady ? '%s s'.format(uci.get('rmm-agent', 'main', 'connectivity_check_interval_seconds') || '300') : _('Unavailable'))
+				item(_('Heartbeat interval'), configReady ? _('%s s').format(uci.get('rmm-agent', 'main', 'interval_seconds') || '30') : _('Unavailable')),
+				item(_('Connectivity check interval'), configReady ? _('%s s').format(uci.get('rmm-agent', 'main', 'connectivity_check_interval_seconds') || '300') : _('Unavailable'))
 			])
 		];
 
 		root.replaceChildren(
 			E('div', { 'class': 'rmm-dashboard-heading' }, [
-				E('div', {}, [ E('div', { 'class': 'rmm-dashboard-eyebrow' }, 'SYSTEM / OVERVIEW'), E('h1', {}, _('RMM overview')) ]),
+				E('div', {}, [ E('div', { 'class': 'rmm-dashboard-eyebrow' }, _('SYSTEM / OVERVIEW')), E('h1', {}, _('RMM overview')) ]),
 				E('span', { 'class': 'rmm-dashboard-refresh' }, _('Updates every 30 seconds'))
 			]),
 			E('div', { 'class': 'rmm-dashboard-grid' }, cards),

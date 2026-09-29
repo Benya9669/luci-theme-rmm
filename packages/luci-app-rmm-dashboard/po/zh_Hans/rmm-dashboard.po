@@ -1,0 +1,105 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "RMM overview"
+msgstr "RMM 概览"
+
+msgid "SYSTEM / OVERVIEW"
+msgstr "系统 / 概览"
+
+msgid "Updates every 30 seconds"
+msgstr "每 30 秒更新"
+
+msgid "WAN status shows the interface link state; it does not test Internet reachability."
+msgstr "WAN 状态仅显示接口链路状态，不测试互联网可达性。"
+
+msgid "Read router and RMM agent status"
+msgstr "读取路由器与 RMM 代理状态"
+
+msgid "Router"
+msgstr "路由器"
+
+msgid "Hostname"
+msgstr "主机名"
+
+msgid "Model"
+msgstr "型号"
+
+msgid "Firmware"
+msgstr "固件"
+
+msgid "Uptime"
+msgstr "运行时间"
+
+msgid "System"
+msgstr "系统"
+
+msgid "Load (1 / 5 / 15 min)"
+msgstr "负载（1 / 5 / 15 分钟）"
+
+msgid "Memory total"
+msgstr "内存总量"
+
+msgid "Memory available"
+msgstr "可用内存"
+
+msgid "WAN connection"
+msgstr "WAN 连接"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Interface"
+msgstr "接口"
+
+msgid "IP address"
+msgstr "IP 地址"
+
+msgid "RMM agent"
+msgstr "RMM 代理"
+
+msgid "Heartbeat interval"
+msgstr "心跳间隔"
+
+msgid "Connectivity check interval"
+msgstr "连通性检查间隔"
+
+msgid "Connected"
+msgstr "已连接"
+
+msgid "Disconnected"
+msgstr "已断开"
+
+msgid "Not configured"
+msgstr "未配置"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Disabled"
+msgstr "已禁用"
+
+msgid "Unavailable"
+msgstr "不可用"
+
+msgid "No address"
+msgstr "无地址"
+
+msgid "%dd"
+msgstr "%d天"
+
+msgid "%dh %dm"
+msgstr "%d小时 %d分钟"
+
+msgid "%s MiB"
+msgstr "%s MiB"
+
+msgid "%s s"
+msgstr "%s 秒"
