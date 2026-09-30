@@ -31,6 +31,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node --check packages/luci-theme-rmm/htdocs/luci-static/rmm/navigation.js
+          node --test tests/navigation.test.cjs
           node --check packages/luci-app-rmm-dashboard/htdocs/luci-static/resources/view/status/rmm-dashboard.js
           python3 -m json.tool packages/luci-app-rmm-dashboard/root/usr/share/luci/menu.d/luci-app-rmm-dashboard.json >/dev/null
           python3 -m json.tool packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json >/dev/null
@@ -129,7 +131,7 @@ jobs:
           gh release create "$TAG" publish/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "OpenWrt RMM LuCI ${TAG#luci-v}" \
-            --notes "RMM LuCI theme and router dashboard. Install from the shared signed RMM feed after it imports this release."
+            --notes-file "docs/release-${TAG#luci-v}.md"
       - name: Trigger shared feed sync
         env:
           GH_TOKEN: ${{ secrets.RMM_FEED_DISPATCH_TOKEN }}

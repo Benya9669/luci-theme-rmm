@@ -2,7 +2,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-theme-rmm
-PKG_VERSION:=0.1.0
+PKG_VERSION:=0.2.0
 PKG_RELEASE:=1
 PKG_LICENSE:=Apache-2.0
 PKG_LICENSE_FILES:=LICENSE
@@ -28,6 +28,7 @@ endef
 define Package/luci-theme-rmm/install
 	$(INSTALL_DIR) $(1)/www/luci-static/rmm
 	$(INSTALL_DATA) ./htdocs/luci-static/rmm/cascade.css $(1)/www/luci-static/rmm/cascade.css
+	$(INSTALL_DATA) ./htdocs/luci-static/rmm/navigation.js $(1)/www/luci-static/rmm/navigation.js
 	$(INSTALL_DIR) $(1)/usr/share/ucode/luci/template/themes/rmm
 	$(INSTALL_DATA) ./ucode/template/themes/rmm/*.ut $(1)/usr/share/ucode/luci/template/themes/rmm/
 	$(INSTALL_DIR) $(1)/etc/uci-defaults

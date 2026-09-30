@@ -1,6 +1,6 @@
 {
 	"admin/status/rmm-dashboard": {
-		"title": "RMM overview",
+		"title": "RMM",
 		"order": 5,
 		"action": {
 			"type": "view",

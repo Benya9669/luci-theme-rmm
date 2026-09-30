@@ -32,7 +32,7 @@
 		{% if (!blank_page): %}
 		<header>
 			<a class="brand" href="{{ dispatcher.build_url('admin') }}">RMM <span class="rmm-brand-separator">/</span> {{ striptags(boardinfo.hostname ?? '?') }}</a>
-			<ul class="nav" id="topmenu" style="display:none"></ul>
+			<nav class="rmm-global-nav" aria-label="{{ _('Main menu') }}"><ul class="nav" id="topmenu" style="display:none"></ul></nav>
 			<div id="indicators" class="pull-right"></div>
 		</header>
 		<div id="maincontent" class="container">

@@ -26,7 +26,7 @@ OpenWrt release and package format. Install packages from a signed feed or
 local files with the usual `opkg`/`apk` workflow. The dashboard has no hard
 dependency on the RMM agent package; agent values show Unavailable when absent.
 
-After installation, open **Status → RMM overview**. Select **RMM** under
+After installation, open **Status → RMM**. Select **RMM** under
 **System → Language and Style** to activate the theme. For SSH rollback:
 
 ```sh
@@ -36,6 +36,12 @@ uci commit luci
 
 The theme adapts Apache-2.0 licensed LuCI Bootstrap templates. The dashboard
 is MIT licensed. Design rules are in `DESIGN.md`.
+
+## Current release
+
+Version **0.2.0** introduces the responsive P1 shell and mobile login fixes.
+See [release notes](docs/release-0.2.0.md) for changes, upgrade verification and
+remaining device testing.
 
 ## GitHub Releases and shared feed
 
