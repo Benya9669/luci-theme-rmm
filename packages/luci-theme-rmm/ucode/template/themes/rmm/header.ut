@@ -17,7 +17,7 @@
 		<title>{{ striptags(`${boardinfo.hostname ?? '?'}${node?.title ? ` | ${_(node.title)}` : ''}`) }}</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="darkreader-lock">
-		<link rel="stylesheet" href="{{ media }}/cascade.css">
+		<link rel="stylesheet" href="{{ media }}/cascade.css?v=0.4.0">
 		<link rel="icon" href="/luci-static/bootstrap/logo.svg" sizes="any">
 		{% if (node?.css): %}
 		<link rel="stylesheet" href="{{ resource }}/{{ node.css }}">

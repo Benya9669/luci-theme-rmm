@@ -24,7 +24,7 @@ make package/luci-theme-rmm/compile package/luci-app-rmm-dashboard/compile V=s
 Both packages use `PKGARCH:=all`; build with the SDK matching the router's
 OpenWrt release and package format. Install packages from a signed feed or
 local files with the usual `opkg`/`apk` workflow. The dashboard has no hard
-dependency on the RMM agent package; agent values show Unavailable when absent.
+dependency on the RMM agent package; agent status explicitly distinguishes an absent service from stopped/disabled.
 
 After installation, open **Status → RMM**. Select **RMM** under
 **System → Language and Style** to activate the theme. For SSH rollback:
@@ -39,8 +39,8 @@ is MIT licensed. Design rules are in `DESIGN.md`.
 
 ## Current release
 
-Version **0.3.0** adds P2 components: labelled mobile records, local table scrolling, touch controls, bounded dropdowns/dialogs and entry-route highlighting.
-See [release notes](docs/release-0.3.0.md) for changes, upgrade verification and
+Version **0.4.0** adds P2 interface-table corrections and the P3 dashboard with source states, timestamps, memory and traffic.
+See [release notes](docs/release-0.4.0.md) for changes, upgrade verification and
 remaining device testing.
 
 ## GitHub Releases and shared feed
@@ -67,3 +67,10 @@ No source or release is published merely by creating the local checkout.
 Run `npm ci --ignore-scripts --no-audit --no-fund` and `npm test`.
 The locked DOM test dependency is not shipped in either LuCI package.
 Actions runs these checks before the two SDK builds.
+
+## 0.4.0 verification
+
+P2 headerless interface-table corrections and P3 dashboard are described in
+[0.4.0 notes](docs/release-0.4.0.md). The local package versions are 0.4.0-r1;
+router verification remains pending. Read permissions add only
+network.device.status; the overview performs no Internet probes or writes.

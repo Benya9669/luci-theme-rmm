@@ -1,0 +1,115 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const { parseHTML } = require('linkedom');
+
+function fixture() {
+  const { document } = parseHTML('<html lang="ru"><head></head><body></body></html>');
+  let now = 100000;
+  const FakeDate = class extends Date { static now() { return now; } };
+  const polls = [];
+  const calls = [];
+  const replies = {};
+  function E(tag, attrs, content) {
+    const el = document.createElement(tag);
+    Object.entries(attrs || {}).forEach(([k,v]) => typeof v === 'function' ? el.addEventListener(k,v) : el.setAttribute(k,v));
+    for (const child of [content].flat(Infinity)) if (child != null) el.append(typeof child === 'object' ? child : document.createTextNode(String(child)));
+    return el;
+  }
+  const context = vm.createContext({ document, Date: FakeDate, E, _: x=>x,
+    rpc: { declare: spec => (...args) => { calls.push([spec.object,spec.method,args]); const reply=replies[spec.object]; return reply instanceof Error ? Promise.reject(reply) : Promise.resolve(reply || {}); } },
+    uci: { load: ()=> Promise.resolve(), get: (_,__,key)=> ({enabled:'1',interval_seconds:'30',connectivity_check_interval_seconds:'600'}[key]) },
+    poll: { add: (fn, seconds)=> polls.push({fn,seconds}) }, view: { extend: x=>x },
+    L: { bind: (fn,self)=>fn.bind(self), resource:x=>x }
+  });
+  vm.runInContext("String.prototype.format = function(...args) { let i=0; return this.replace(/%[ds]/g,()=>args[i++]); };",context);
+  const source=fs.readFileSync('packages/luci-app-rmm-dashboard/htdocs/luci-static/resources/view/status/rmm-dashboard.js','utf8');
+  const view=vm.runInContext('(function(){'+source+'})()',context);
+  return { view, document, polls, replies, calls, time: value=>now=value };
+}
+function snapshot(at=100000, overrides={}) {
+  const values=[{hostname:'router',model:'model',release:{description:'OpenWrt'}},
+    {uptime:100,memory:{total:104857600,available:26214400},load:[65536,0,0]},
+    {interface:[{interface:'wan',up:true,l3_device:'eth0','ipv4-address':[{address:'192.0.2.1'}]}]},
+    {'rmm-agent':{instances:{main:{running:true}}}}, {enabled:'1',heartbeat:'30',connectivity:'600'},
+    {eth0:{statistics:{rx_bytes:1048576,tx_bytes:2097152}}}];
+  return values.map((value,i)=>overrides[i] || {value,at});
+}
+
+test('system, network and agent show real metrics, timestamps and 30-second polling',()=>{
+  const f=fixture(); const root=f.view.render(snapshot());
+  assert.equal(root.querySelectorAll('section').length,3);
+  assert.match(root.textContent,/75.0 MiB \(75.0%\)/);
+  assert.match(root.textContent,/192.0.2.1/);
+  assert.match(root.textContent,/600 с/);
+  assert.equal(root.querySelectorAll('time').length,6);
+  assert.equal(f.polls[0].seconds,30);
+  assert.match(root.textContent,/Накопление данных/);
+});
+test('partial permission failure retains cached data and last successful source time',()=>{
+  const f=fixture(); const root=f.view.render(snapshot()); const retry=f.view.retry;
+  f.time(130000); f.view.update(root,snapshot(130000,{2:{error:{code:6}}}));
+  assert.match(root.textContent,/Устаревшие данные · Нет доступа/);
+  assert.match(root.textContent,/192.0.2.1/);
+  assert.equal(f.view.sources[2].at,100000);
+  assert.equal(f.view.sources[1].at,130000);
+  assert.equal(f.view.retry,retry);
+  f.view.update(root,snapshot(160000));
+  assert.equal(f.view.status.textContent,'Актуально');
+});
+test('initial unavailable source is distinct from missing agent and disabled service',()=>{
+  const f=fixture(); const root=f.view.render(snapshot(100000,{2:{error:{code:6}},3:{value:{},at:100000}}));
+  assert.match(root.textContent,/Нет доступа/);
+  assert.match(root.textContent,/Не установлен/);
+  assert.doesNotMatch(root.textContent,/192.0.2.1/);
+  f.view.update(root,snapshot(130000,{3:{value:{'rmm-agent':{instances:{}}},at:130000},4:{value:{enabled:'0'},at:130000}}));
+  assert.match(root.textContent,/Выключен/);
+});
+test('traffic uses elapsed time and counter reset or reboot never creates a negative rate',()=>{
+  const f=fixture(); const root=f.view.render(snapshot());
+  f.time(130000); f.view.update(root,snapshot(130000,{5:{at:130000,value:{eth0:{statistics:{rx_bytes:32505856,tx_bytes:65011712}}}}}));
+  assert.match(root.textContent,/1.0 MiB\/s \/ 2.0 MiB\/s/);
+  f.time(160000); f.view.update(root,snapshot(160000));
+  assert.match(root.textContent,/Накопление данных/);
+  f.view.update(root,snapshot(190000,{1:{at:190000,value:{uptime:1,memory:{},load:[]}}}));
+  assert.match(root.textContent,/Скорость RX \/ TXНедоступно/);
+});
+test('malformed RPC responses become source errors; empty service response is valid',async()=>{
+  const f=fixture(); f.replies.system={}; f.replies['network.interface']={interface:'wrong'};
+  const data=await f.view.load();
+  assert.ok(data[0].error); assert.ok(data[1].error); assert.ok(data[2].error);
+  assert.equal(data[3].error,undefined);
+  assert.equal(f.calls.filter(x=>x[0]==='network.device').length,1);
+});
+test('overlapping refreshes share requests and failed polls do not erase other sources',async()=>{
+  const f=fixture(); const root=f.view.render(snapshot());
+  const a=f.view.load(), b=f.view.load(); assert.equal(a,b); await a;
+  f.replies.system=new Error('offline'); await f.view.refresh();
+  assert.match(root.textContent,/Устаревшие данные/);
+  assert.equal(f.view.retry.disabled,false);
+});
+test('asset cache versions match both package versions', () => {
+  for (const packageName of ['luci-theme-rmm', 'luci-app-rmm-dashboard']) {
+    const version = fs.readFileSync('packages/' + packageName + '/Makefile', 'utf8').match(/PKG_VERSION:=(.+)/)[1].trim();
+    const files = packageName === 'luci-theme-rmm' ? ['ucode/template/themes/rmm/header.ut', 'ucode/template/themes/rmm/footer.ut'] : ['htdocs/luci-static/resources/view/status/rmm-dashboard.js'];
+    for (const file of files) assert.ok(fs.readFileSync('packages/' + packageName + '/' + file, 'utf8').includes('?v=' + version));
+  }
+});
+test('every initial source failure remains explicit, then recovers without losing controls', () => {
+  const f=fixture(); const root=f.view.render(snapshot(100000, Object.fromEntries([0,1,2,3,4,5].map(i=>[i,{error:{code:6}}]))));
+  assert.equal(f.view.status.textContent, 'Недоступно');
+  const retry=f.view.retry; f.view.update(root,snapshot(130000));
+  assert.equal(f.view.status.textContent, 'Актуально'); assert.equal(f.view.retry,retry);
+});
+
+test('missing or malformed optional telemetry renders unavailable without breaking other sections', () => {
+  const f=fixture(); const root=f.view.render(snapshot(100000, {
+    0: {at:100000,value:{hostname:'router',model:{bad:true},release:{description:null}}},
+    1: {at:100000,value:{uptime:100,memory:{total:100,available:200},load:[]}},
+    2: {at:100000,value:{interface:[null,{interface:'wan',up:true,'ipv4-address':[null]}]}}
+  }));
+  assert.match(root.textContent,/Нет адреса/);
+  assert.match(root.textContent,/Занято памятиНедоступно/);
+  assert.match(root.textContent,/Работает/);
+});

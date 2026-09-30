@@ -162,3 +162,11 @@ test('open dropdown stays within mobile bounds and above the bottom navigation',
   assert.equal(dropdown.style.getPropertyValue('--rmm-dropdown-top'), '400px');
   assert.equal(list.classList.contains('rmm-dropdown-panel'), true);
 });
+test('headerless interface summaries retain native controls and get mobile status layout', () => {
+  const f = fixture('<div id="view"><table class="table"><tr class="tr"><td class="td"><div class="ifacebox">lan</div></td><td class="td">2001:db8::1</td><td class="td cbi-section-actions"><button>Restart</button></td></tr></table></div>');
+  const button = f.document.querySelector('button');
+  assert.equal(f.document.querySelector('table').classList.contains('rmm-status-table'), true);
+  f.refresh();
+  assert.equal(f.document.querySelector('button'), button);
+  assert.equal(f.document.querySelectorAll('[data-rmm-label]').length, 0);
+});

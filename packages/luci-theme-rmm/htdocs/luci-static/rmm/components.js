@@ -76,6 +76,11 @@
 			table.classList.add('rmm-key-values');
 		}
 
+		else if (rows.length && rows.every(function(row) { return cells(row).length >= 3 && !cells(row).some(function(cell) { return Number(cell.getAttribute('colspan') || 1) > 1; }); })) {
+			// Native interface/Wi-Fi summaries have no column heading.
+			table.classList.add('rmm-status-table');
+		}
+
 		// Form widgets need visible overflow for their native dropdowns and tooltips.
 		// Only read-only tables get a local scroll wrapper; nodes/events are retained.
 		if (table.querySelector('input, select, textarea, .cbi-dropdown, .cbi-tooltip-container'))

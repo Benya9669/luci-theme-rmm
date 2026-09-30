@@ -509,3 +509,18 @@ pre, #syslog, .command-output, .uci-change-list {
 	body { --rmm-mobile-nav-fallback: calc(112px + env(safe-area-inset-bottom)); }
 	.rmm-global-nav .nav { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Headerless native status summaries share the stacked mobile layout. */
+.rmm-status-table { width: 100%; table-layout: fixed; }
+.rmm-status-table .nowrap { white-space: normal; overflow-wrap: anywhere; }
+.rmm-status-table .cbi-section-actions > div { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 599px) {
+	/* LuCI may set inline column widths; mobile rows own the full available width. */
+	.rmm-status-table, .rmm-status-table > tbody, .rmm-status-table > .tbody,
+	.rmm-status-table .tr, .rmm-status-table .td {
+		display: block; min-width: 0; max-width: 100%; width: 100% !important;
+	}
+	.rmm-status-table .tr { padding: 12px 0; border-top: 1px solid var(--rmm-border); }
+	.rmm-status-table .td { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+	.rmm-status-table .cbi-section-actions > div { justify-content: flex-start; }
+}
