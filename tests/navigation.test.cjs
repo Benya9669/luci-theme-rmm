@@ -19,7 +19,7 @@ function setup(width, pathname = '/cgi-bin/luci/admin/status/overview', route = 
   let focus = null;
   let keyboard = true;
   const trigger = {
-    parentElement: null,
+    parentElement: null, getBoundingClientRect: () => ({ top: 800 }),
     setAttribute: (key, value) => { attributes[key] = value; },
     removeAttribute: key => { delete attributes[key]; },
     matches: selector => selector === ':focus-visible' ? keyboard : true,
@@ -37,7 +37,7 @@ function setup(width, pathname = '/cgi-bin/luci/admin/status/overview', route = 
     closest: () => group,
     matches: () => false
   };
-  const submenu = { id: '' };
+  const submenu = { id: '', scrollHeight: 240, style: { setProperty() {} } };
   const group = {
     classList: classes(),
     querySelector: selector => selector.includes('a.menu') ? trigger : selector.includes('a[href]') ? link : submenu,
@@ -60,7 +60,7 @@ function setup(width, pathname = '/cgi-bin/luci/admin/status/overview', route = 
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../packages/luci-theme-rmm/htdocs/luci-static/rmm/navigation.js'), 'utf8'), {
     document, location: { pathname, href: 'http://router' + pathname, origin: 'http://router' },
     window: {
-      matchMedia: query => ({ matches: query.includes('599') ? width < 600 : width >= 900 }),
+      innerHeight: 900, matchMedia: query => ({ matches: query.includes('599') ? width < 600 : width >= 900 }),
       addEventListener: listen('window'), location: { assign: value => { destination = value; } }
     },
     MutationObserver: class { observe() {} }, URL, Promise
@@ -114,11 +114,15 @@ test('mobile Space opens and outside click closes', () => {
   assert.equal(page.open, false);
 });
 
-test('desktop group navigates to first child and has no disclosure state', () => {
+test('desktop icon group toggles a labelled flyout and Escape restores focus', () => {
   const page = setup(900);
   page.trigger.click();
-  assert.equal(page.destination, page.link.href);
-  assert.equal(page.attributes['aria-expanded'], undefined);
+  assert.equal(page.destination, undefined);
+  assert.equal(page.open, true);
+  assert.equal(page.attributes['aria-expanded'], 'true');
+  page.handlers.documentkeydown({ key: 'Escape', preventDefault() {} });
+  assert.equal(page.open, false);
+  assert.equal(page.focus, page.trigger);
 });
 
 test('dispatcher route highlights the overview behind the root entry alias', () => {
