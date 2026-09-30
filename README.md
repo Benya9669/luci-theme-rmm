@@ -26,7 +26,8 @@ OpenWrt release and package format. Install packages from a signed feed or
 local files with the usual `opkg`/`apk` workflow. The dashboard has no hard
 dependency on the RMM agent package; agent status explicitly distinguishes an absent service from stopped/disabled.
 
-After installation, open **Status → RMM**. Select **RMM** under
+After installation, open **RMM** at `/cgi-bin/luci/admin/dashboard`.
+The old `/admin/status/rmm-dashboard` route remains an authenticated alias. Select **RMM** under
 **System → Language and Style** to activate the theme. For SSH rollback:
 
 ```sh
@@ -36,6 +37,19 @@ uci commit luci
 
 The theme adapts Apache-2.0 licensed LuCI Bootstrap templates. The dashboard
 is MIT licensed. Design rules are in `DESIGN.md`.
+
+## Navigation and translation integration
+
+Desktop (900 px and wider) uses a 72 px icon sidebar with local Tabler icons,
+accessible names and tooltips. Click a section icon to open its text submenu;
+Escape closes it and restores focus. Tablet and mobile retain text labels.
+This icon rail follows the explicitly requested navigation style.
+
+Install `luci-i18n-rmm-dashboard-ru` for Russian or
+`luci-i18n-rmm-dashboard-zh-cn` for Simplified Chinese. Both SDK
+builds publish both translation packages alongside the theme and dashboard. Test builds
+on `codex/**` branches and PRs upload artifacts without publishing a release
+or dispatching a feed update. See [the dashboard roadmap](ROADMAP.md).
 
 ## Current release
 
@@ -47,7 +61,7 @@ remaining device testing.
 
 Push an annotated `luci-vMAJOR.MINOR.PATCH` tag after both package versions match
 that tag. `.github/workflows/release.yml` builds IPK for OpenWrt 24.10.7 and
-APK for OpenWrt 25.12.4, verifies both packages, and uploads them to a
+APK for OpenWrt 25.12.4, verifies the theme, dashboard and Russian/Simplified Chinese translations, and uploads them to a
 GitHub Release in this repository. It also publishes a `SHA256SUMS` asset.
 
 The separate `openwrt-rmm` repository owns the common signed package feed at

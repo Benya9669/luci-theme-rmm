@@ -46,18 +46,26 @@ RUN printf '%s\n' \
       '# CONFIG_ALL_KMODS is not set' \
       '# CONFIG_ALL_NONSHARED is not set' \
       'CONFIG_PACKAGE_luci-theme-rmm=m' \
-      'CONFIG_PACKAGE_luci-app-rmm-dashboard=m' > .config \
+      'CONFIG_PACKAGE_luci-app-rmm-dashboard=m' \
+      'CONFIG_LUCI_LANG_ru=m' \
+      'CONFIG_PACKAGE_luci-i18n-rmm-dashboard-ru=m' \
+      'CONFIG_LUCI_LANG_zh_Hans=m' \
+      'CONFIG_PACKAGE_luci-i18n-rmm-dashboard-zh-cn=m' > .config \
     && make defconfig \
     && grep -q '^CONFIG_PACKAGE_luci-theme-rmm=m$' .config \
-    && grep -q '^CONFIG_PACKAGE_luci-app-rmm-dashboard=m$' .config
+    && grep -q '^CONFIG_PACKAGE_luci-app-rmm-dashboard=m$' .config \
+    && grep -q '^CONFIG_PACKAGE_luci-i18n-rmm-dashboard-zh-cn=m$' .config \
+    && grep -q '^CONFIG_PACKAGE_luci-i18n-rmm-dashboard-ru=m$' .config
 
 RUN make -j1 package/luci-theme-rmm/compile package/luci-app-rmm-dashboard/compile V=s
 
 RUN mkdir -p /home/builder/artifacts \
     && find bin -type f \( -name 'luci-theme-rmm*.ipk' -o -name 'luci-theme-rmm*.apk' \
-        -o -name 'luci-app-rmm-dashboard*.ipk' -o -name 'luci-app-rmm-dashboard*.apk' \) \
+        -o -name 'luci-app-rmm-dashboard*.ipk' -o -name 'luci-app-rmm-dashboard*.apk' \
+        -o -name 'luci-i18n-rmm-dashboard-zh-cn*.ipk' -o -name 'luci-i18n-rmm-dashboard-zh-cn*.apk' \
+        -o -name 'luci-i18n-rmm-dashboard-ru*.ipk' -o -name 'luci-i18n-rmm-dashboard-ru*.apk' \) \
         -exec cp '{}' /home/builder/artifacts/ \; \
-    && test "$(find /home/builder/artifacts -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) | wc -l)" -eq 2 \
+    && test "$(find /home/builder/artifacts -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) | wc -l)" -eq 4 \
     && cd /home/builder/artifacts \
     && find . -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) -print | sort | xargs sha256sum > SHA256SUMS
 

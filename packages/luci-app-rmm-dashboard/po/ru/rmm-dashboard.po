@@ -1,0 +1,171 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Partial data"
+msgstr "Часть данных недоступна"
+
+msgid "Loading"
+msgstr "Загрузка"
+
+msgid "Current"
+msgstr "Актуально"
+
+msgid "Stale"
+msgstr "Устаревшие данные"
+
+msgid "Access denied"
+msgstr "Нет доступа"
+
+msgid "Last successful update"
+msgstr "Последнее успешное обновление"
+
+msgid "Never updated"
+msgstr "Ещё не обновлялось"
+
+msgid "Retry"
+msgstr "Повторить"
+
+msgid "Refreshing"
+msgstr "Обновление"
+
+msgid "Memory used"
+msgstr "Занято памяти"
+
+msgid "Network"
+msgstr "Сеть"
+
+msgid "Device"
+msgstr "Устройство"
+
+msgid "Received / sent"
+msgstr "Принято / отправлено"
+
+msgid "RX / TX rate"
+msgstr "Скорость RX / TX"
+
+msgid "Collecting"
+msgstr "Накопление данных"
+
+msgid "Not installed"
+msgstr "Не установлен"
+
+msgid "No interfaces"
+msgstr "Нет интерфейсов"
+
+msgid "Sources"
+msgstr "Источники"
+
+msgid "Traffic counters belong to devices; shared devices are not summed."
+msgstr "Счётчики относятся к устройствам; общие устройства не суммируются."
+
+msgid "Unavailable"
+msgstr "Недоступно"
+
+msgid "No address"
+msgstr "Нет адреса"
+
+msgid "Not configured"
+msgstr "Не настроено"
+
+msgid "Connected"
+msgstr "Подключено"
+
+msgid "Disconnected"
+msgstr "Отключено"
+
+msgid "Running"
+msgstr "Работает"
+
+msgid "Stopped"
+msgstr "Остановлен"
+
+msgid "Disabled"
+msgstr "Выключен"
+
+msgid "Router"
+msgstr "Роутер"
+
+msgid "Hostname"
+msgstr "Имя устройства"
+
+msgid "Model"
+msgstr "Модель"
+
+msgid "Firmware"
+msgstr "Прошивка"
+
+msgid "Uptime"
+msgstr "Время работы"
+
+msgid "System"
+msgstr "Система"
+
+msgid "Load (1 / 5 / 15 min)"
+msgstr "Нагрузка (1 / 5 / 15 мин)"
+
+msgid "Memory total"
+msgstr "Всего памяти"
+
+msgid "Memory available"
+msgstr "Доступно памяти"
+
+msgid "WAN connection"
+msgstr "Подключение WAN"
+
+msgid "Status"
+msgstr "Состояние"
+
+msgid "Interface"
+msgstr "Интерфейс"
+
+msgid "IP address"
+msgstr "IP-адрес"
+
+msgid "RMM agent"
+msgstr "Агент RMM"
+
+msgid "Heartbeat interval"
+msgstr "Интервал heartbeat"
+
+msgid "Connectivity check interval"
+msgstr "Интервал проверки связи"
+
+msgid "RMM overview"
+msgstr "Обзор RMM"
+
+msgid "Updates every 30 seconds"
+msgstr "Обновление каждые 30 секунд"
+
+msgid "WAN status shows the interface link state; it does not test Internet reachability."
+msgstr "Состояние WAN показывает состояние интерфейса, но не проверяет доступ в Интернет."
+
+msgid "SYSTEM / OVERVIEW"
+msgstr "СИСТЕМА / ОБЗОР"
+
+msgid "d"
+msgstr "д"
+
+msgid "h"
+msgstr "ч"
+
+msgid "m"
+msgstr "мин"
+
+msgid "s"
+msgstr "с"
+
+msgid "Read router and RMM agent status"
+msgstr "Чтение состояния роутера и агента RMM"
+
+msgid "RMM"
+msgstr "RMM"
+
+msgid "%s MiB"
+msgstr "%s MiB"
+
+msgid "%s s"
+msgstr "%s с"

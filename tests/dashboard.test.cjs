@@ -113,3 +113,20 @@ test('missing or malformed optional telemetry renders unavailable without breaki
   assert.match(root.textContent,/Занято памятиНедоступно/);
   assert.match(root.textContent,/Работает/);
 });
+
+function catalog(language) {
+  const text = fs.readFileSync('packages/luci-app-rmm-dashboard/po/'+language+'/rmm-dashboard.po','utf8');
+  return Object.fromEntries([...text.matchAll(/^msgid (".*")\r?\nmsgstr (".*")/gm)].map(m=>[JSON.parse(m[1]),JSON.parse(m[2])]));
+}
+test('RU and zh-cn catalogs cover current dashboard labels and source states',()=>{
+ const source=fs.readFileSync('packages/luci-app-rmm-dashboard/htdocs/luci-static/resources/view/status/rmm-dashboard.js','utf8');
+ const dict=vm.runInNewContext('('+source.match(/var russian = (\{[\s\S]*?\n\});/)[1]+')');
+ for (const lang of ['ru','zh_Hans']) {
+  const messages=catalog(lang);
+  for (const key of Object.keys(dict)) assert.ok(messages[key], lang+': '+key);
+  assert.ok(messages['Read router and RMM agent status']);
+  assert.ok(messages['%s MiB']);
+ }
+ const russian=catalog('ru');
+ for (const [key,value] of Object.entries(dict)) assert.equal(russian[key],value);
+});

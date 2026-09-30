@@ -2,7 +2,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-theme-rmm
-PKG_VERSION:=0.4.0
+PKG_VERSION:=0.5.0
 PKG_RELEASE:=1
 PKG_LICENSE:=Apache-2.0
 PKG_LICENSE_FILES:=LICENSE
@@ -43,7 +43,12 @@ endef
 
 define Package/luci-theme-rmm/postinst
 #!/bin/sh
-[ -n "$${IPKG_INSTROOT}" ] || /etc/uci-defaults/30_luci-theme-rmm
+if [ -z "$${IPKG_INSTROOT}" ]; then
+	if [ -f /etc/uci-defaults/30_luci-theme-rmm ]; then
+		sh /etc/uci-defaults/30_luci-theme-rmm || exit $$?
+		rm -f /etc/uci-defaults/30_luci-theme-rmm
+	fi
+fi
 exit 0
 endef
 

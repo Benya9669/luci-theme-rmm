@@ -89,7 +89,7 @@ function formatDuration(seconds) {
 function formatBytes(bytes) {
 	if (typeof bytes !== 'number' || !isFinite(bytes) || bytes < 0)
 		return tr('Unavailable');
-	return (bytes / 1048576).toFixed(1) + ' MiB';
+	return _('%s MiB').format((bytes / 1048576).toFixed(1));
 }
 
 function formatTraffic(bytes) {
@@ -134,7 +134,7 @@ return view.extend({
 
 	render: function(data) {
 		if (!document.getElementById('rmm-dashboard-styles'))
-			document.head.appendChild(E('link', { id: 'rmm-dashboard-styles', rel: 'stylesheet', href: L.resource('view/status/rmm-dashboard.css') + '?v=0.4.0' }));
+			document.head.appendChild(E('link', { id: 'rmm-dashboard-styles', rel: 'stylesheet', href: L.resource('view/status/rmm-dashboard.css') + '?v=0.5.0' }));
 		this.sources = [];
 		this.slots = {};
 		this.status = E('span', { 'class': 'rmm-dashboard-refresh', role: 'status', 'aria-live': 'polite' }, tr('Loading'));

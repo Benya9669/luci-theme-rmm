@@ -1,7 +1,9 @@
 name: Build and release LuCI packages
 
 on:
+  pull_request:
   push:
+    branches: ["codex/**"]
     tags: ["luci-v*"]
   workflow_dispatch:
     inputs:
@@ -23,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref_name }}
+          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -40,6 +42,7 @@ jobs:
           python3 -m json.tool packages/luci-app-rmm-dashboard/root/usr/share/luci/menu.d/luci-app-rmm-dashboard.json >/dev/null
           python3 -m json.tool packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json >/dev/null
       - name: Validate package version
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
         shell: bash
@@ -80,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           (cd artifacts && sha256sum --check SHA256SUMS)
-          test "$(find artifacts -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) | wc -l)" -eq 2
+          test "$(find artifacts -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) | wc -l)" -eq 4
       - uses: actions/upload-artifact@v4
         with:
           name: luci-${{ matrix.release }}
@@ -89,6 +92,7 @@ jobs:
           retention-days: 90
 
   release:
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     needs: packages
     runs-on: ubuntu-24.04
     permissions:
@@ -98,7 +102,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref_name }}
+          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/download-artifact@v4
         with:
           pattern: luci-*
@@ -115,7 +119,7 @@ jobs:
               cp "$package" "publish/openwrt-${release}-$(basename "$package")"
             done
           done
-          test "$(find publish -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) | wc -l)" -eq 4
+          test "$(find publish -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) | wc -l)" -eq 8
           (cd publish && sha256sum ./* > SHA256SUMS)
       - uses: actions/attest-build-provenance@v2
         with:

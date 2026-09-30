@@ -139,3 +139,35 @@ test('foreign resolved routes cannot change current destination', () => {
   const page = setup(768, '/cgi-bin/luci/', 'https://foreign.example/cgi-bin/luci/admin/status/overview');
   assert.equal(page.linkAttributes['aria-current'], undefined);
 });
+const { parseHTML } = require('linkedom');
+test('icon rail preserves anchors, accessible names and idempotent asynchronous menu decoration', async () => {
+  const { document } = parseHTML('<html><body data-rmm-icons="/icons.svg?v=test"><nav><ul id="topmenu"><li><a href="/cgi-bin/luci/admin/dashboard">RMM</a></li><li class="dropdown"><a class="menu" href="#">System</a><ul class="dropdown-menu"><li><a href="/cgi-bin/luci/admin/system/system">Settings</a></li></ul></li></ul></nav></body></html>');
+  document.getElementById('topmenu').parentElement.getBoundingClientRect = () => ({height:56});
+  let changed;
+  const context = { document, location:{href:'http://router/cgi-bin/luci/admin/dashboard', pathname:'/cgi-bin/luci/admin/dashboard',origin:'http://router'}, window:{innerHeight:900, matchMedia:query=>({matches:query.includes('900')}),addEventListener(){}}, URL, Promise, MutationObserver:class { constructor(fn){changed=fn;} observe(){} } };
+  const original=document.querySelector('a');
+  let clicks=0; original.addEventListener('click',()=>clicks++);
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../packages/luci-theme-rmm/htdocs/luci-static/rmm/navigation.js'),'utf8'),context);
+  assert.equal(document.querySelector('a'),original);
+  assert.equal(original.getAttribute('aria-label'),'RMM');
+  assert.equal(original.getAttribute('title'),'RMM');
+  assert.equal(original.getAttribute('aria-current'),'page');
+  assert.equal(original.querySelector('use').getAttribute('href'),'/icons.svg?v=test#icon-layout-grid');
+  assert.equal(document.querySelector('a.menu use').getAttribute('href'),'/icons.svg?v=test#icon-router');
+  original.click(); assert.equal(clicks,1);
+  changed(); await Promise.resolve();
+  assert.equal(original.querySelectorAll('svg').length,1);
+  const node=document.createElement('li');node.innerHTML='<a href="/cgi-bin/luci/admin/network/network">Network</a>';document.getElementById('topmenu').append(node);
+  changed();await Promise.resolve();
+  assert.equal(node.querySelector('use').getAttribute('href'),'/icons.svg?v=test#icon-network');
+  assert.equal(node.querySelector('.rmm-nav-label').textContent,'Network');
+});
+
+test('dashboard route retains old alias and read access restrictions',()=>{
+ const menu=JSON.parse(fs.readFileSync(path.join(__dirname,'../packages/luci-app-rmm-dashboard/root/usr/share/luci/menu.d/luci-app-rmm-dashboard.json')));
+ assert.equal(menu['admin/dashboard'].action.path,'status/rmm-dashboard');
+ assert.equal(menu['admin/dashboard'].firstchild_ineligible,true);
+ assert.equal(menu['admin/status/rmm-dashboard'].action.type,'alias');
+ assert.equal(menu['admin/status/rmm-dashboard'].action.path,'admin/dashboard');
+ assert.deepEqual(menu['admin/dashboard'].depends,menu['admin/status/rmm-dashboard'].depends);
+});
