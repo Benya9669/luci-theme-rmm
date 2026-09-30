@@ -47,15 +47,15 @@ RUN printf '%s\n' \
       '# CONFIG_ALL_NONSHARED is not set' \
       'CONFIG_PACKAGE_luci-theme-rmm=m' \
       'CONFIG_PACKAGE_luci-app-rmm-dashboard=m' \
-      'CONFIG_LUCI_LANG_ru=m' \
+      'CONFIG_LUCI_LANG_ru=y' \
       'CONFIG_PACKAGE_luci-i18n-rmm-dashboard-ru=m' \
-      'CONFIG_LUCI_LANG_zh_Hans=m' \
+      'CONFIG_LUCI_LANG_zh_Hans=y' \
       'CONFIG_PACKAGE_luci-i18n-rmm-dashboard-zh-cn=m' > .config \
     && make defconfig \
     && grep -q '^CONFIG_PACKAGE_luci-theme-rmm=m$' .config \
     && grep -q '^CONFIG_PACKAGE_luci-app-rmm-dashboard=m$' .config \
-    && grep -q '^CONFIG_PACKAGE_luci-i18n-rmm-dashboard-zh-cn=m$' .config \
-    && grep -q '^CONFIG_PACKAGE_luci-i18n-rmm-dashboard-ru=m$' .config
+    && { grep -q '^CONFIG_PACKAGE_luci-i18n-rmm-dashboard-zh-cn=m$' .config || { grep -E 'LUCI_LANG_|luci-(app-rmm-dashboard|i18n-rmm-dashboard)' .config; exit 1; }; } \
+    && { grep -q '^CONFIG_PACKAGE_luci-i18n-rmm-dashboard-ru=m$' .config || { grep -E 'LUCI_LANG_|luci-(app-rmm-dashboard|i18n-rmm-dashboard)' .config; exit 1; }; }
 
 RUN make -j1 package/luci-theme-rmm/compile package/luci-app-rmm-dashboard/compile V=s
 

@@ -3,7 +3,7 @@ name: Build and release LuCI packages
 on:
   pull_request:
   push:
-    branches: ["codex/**"]
+    branches: [main]
     tags: ["luci-v*"]
   workflow_dispatch:
     inputs:

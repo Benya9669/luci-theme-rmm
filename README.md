@@ -48,7 +48,7 @@ This icon rail follows the explicitly requested navigation style.
 Install `luci-i18n-rmm-dashboard-ru` for Russian or
 `luci-i18n-rmm-dashboard-zh-cn` for Simplified Chinese. Both SDK
 builds publish both translation packages alongside the theme and dashboard. Test builds
-on `codex/**` branches and PRs upload artifacts without publishing a release
+on `main` and PRs upload artifacts without publishing a release
 or dispatching a feed update. See [the dashboard roadmap](ROADMAP.md).
 
 ## Current release
