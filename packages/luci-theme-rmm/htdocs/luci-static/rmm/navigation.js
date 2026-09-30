@@ -43,6 +43,16 @@
 			scheduled = false;
 			menu.classList.toggle('rmm-nav-many', menu.children.length > 5);
 			var current = location.pathname.replace(/\/+$/, '');
+			// The dispatcher resolves firstchild/alias entry URLs without redirecting.
+			var route = document.body.getAttribute('data-rmm-route');
+			if (route) {
+				try {
+					var resolved = new URL(route, location.href);
+					if (resolved.origin === location.origin)
+						current = resolved.pathname.replace(/\/+$/, '');
+				}
+				catch (_) { /* Keep the visible URL when the route is malformed. */ }
+			}
 			var best = null;
 			var bestLength = -1;
 

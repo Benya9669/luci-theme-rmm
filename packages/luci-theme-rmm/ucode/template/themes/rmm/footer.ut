@@ -7,6 +7,7 @@
 		</footer>
 		<script>L.require('menu-bootstrap')</script>
 		<script src="{{ media }}/navigation.js" defer></script>
+		<script src="{{ media }}/components.js" defer></script>
 {% endif %}
 	</body>
 </html>

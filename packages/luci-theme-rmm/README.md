@@ -29,3 +29,27 @@ uci commit luci
 ```
 
 The theme is based on the Apache-2.0 licensed LuCI Bootstrap templates.
+
+## P2 components
+
+The theme owns responsive rules based on viewport width. Bootstrap mobile.css
+is no longer imported, so phone screen size does not change the CSS cascade.
+Below 600 px, supported data tables show labelled stacked records; header
+content and sorting controls remain in a compact scroll row. Read-only tables
+have their own keyboard-focusable scroll region. Editable tables keep their
+native nodes, events and visible overflow for dropdowns/tooltips. Labels are
+refreshed when LuCI replaces rows during polling.
+
+Diagnostics command groups stack on mobile and have visible destination labels.
+Normal controls use 36 px; login, mobile and coarse-pointer controls use 42 px.
+Tabs scroll locally; technical output wraps or scrolls inside its own component.
+Open dropdowns stay inside the viewport and account for the mobile navigation.
+Non-login dialogs have bounded height, accessible titles, Tab containment and
+focus restoration. Native LuCI save/cancel/Escape handlers remain responsible
+for their actions. No configuration writes or additional RPC calls are added.
+
+After upgrade, perform a full browser reload and check the base LuCI entry URL,
+DHCP, interfaces, Wi-Fi, firewall, startup, DDNS, diagnostics (without running
+commands), dropdowns and a safe dialog at 320/390/768/1024/1440 px. Also check
+physical touch devices, 200% zoom and the same widgets in installed third-party
+packages. DOM tests do not replace this device validation.

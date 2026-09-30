@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 @import url('/luci-static/bootstrap/cascade.css');
-@import url('/luci-static/bootstrap/mobile.css') only screen and (max-device-width: 854px);
 
 :root[data-darkmode="true"] {
 	--background-color-high: #090b0d;
@@ -39,6 +38,13 @@
 	--rmm-accent: #6f8999;
 	--rmm-accent-hover: #819bab;
 	--rmm-sidebar-width: 236px;
+	--rmm-control-compact: 30px;
+	--rmm-control-default: 36px;
+	--rmm-control-touch: 42px;
+	--rmm-success: #77957d;
+	--rmm-warning: #b19a6b;
+	--error-color-high-rgb: 189, 138, 138;
+	--success-color-high-rgb: 146, 173, 152;
 	color-scheme: dark;
 }
 
@@ -51,8 +57,8 @@ body {
 }
 .container { max-width: 1440px; padding: 0 16px; }
 #maincontent { flex: 1 0 auto; min-width: 0; }
-/* LuCI renders many data tables directly in #view without a scroll wrapper. */
-#view { min-width: 0; max-width: 100%; overflow-x: auto; }
+/* Overflow belongs to individual tables and technical output, not the page. */
+#view { min-width: 0; max-width: 100%; }
 header {
 	margin: 0 0 16px;
 	padding: 0 max(16px, calc((100% - 1408px) / 2));
@@ -90,7 +96,7 @@ footer {
 }
 footer a { color: var(--rmm-accent-hover); }
 h1 { font-size: 24px; line-height: 1.3; margin: 0 0 16px; }
-h2 { font-size: 19px; line-height: 1.4; }
+h2 { font-size: 18px; line-height: 1.4; }
 h3, legend { font-size: 16px; line-height: 1.4; }
 h4, h5, h6 { line-height: 1.4; }
 p, .cbi-map-descr, .cbi-section-descr { font-size: 14px; line-height: 1.45; }
@@ -176,9 +182,15 @@ body:has(> section[hidden]) .modal { background: var(--rmm-surface); border: 1px
 }
 
 .tabs, .cbi-tabmenu {
-  background: var(--rmm-surface);
-  border-bottom: 1px solid var(--rmm-border-strong);
+	display: flex;
+	flex-wrap: nowrap;
+	max-width: 100%;
+	overflow-x: auto;
+	background: var(--rmm-surface);
+	border-bottom: 1px solid var(--rmm-border-strong);
 }
+.tabs > li, .cbi-tabmenu > li { float: none; flex: 0 0 auto; height: auto; }
+.tabs > li > a, .cbi-tabmenu > li > a { display: flex; align-items: center; min-height: var(--rmm-control-default); }
 .tabs > li:not(.active), .cbi-tabmenu > .cbi-tab-disabled,
 .tabs > li:not(.active):hover, .cbi-tabmenu > .cbi-tab-disabled:hover {
   background: var(--rmm-surface-2);
@@ -192,6 +204,143 @@ body:has(> section[hidden]) .modal { background: var(--rmm-surface); border: 1px
 .btn.danger, .btn.error, .cbi-tooltip.error { background: #291d1d; border: 1px solid #8d6060; color: var(--rmm-text); }
 [data-darkmode="true"] .zonebadge[style],
 [data-darkmode="true"] .ifacebox-head[style] { background-image: none !important; }
+/* LuCI components: preserve native widget handlers, IDs and validation. */
+button, .btn, .cbi-button, select, .cbi-dropdown,
+input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]) { min-height: var(--rmm-control-default); }
+.cbi-value-field { min-width: 0; }
+.cbi-value-field > input:not([type="checkbox"]):not([type="radio"]),
+.cbi-value-field > select, .cbi-value-field > .cbi-dropdown { max-width: 100%; }
+.cbi-value-description, .cbi-map-descr, .cbi-section-descr,
+.alert-message, .cbi-value-error { overflow-wrap: anywhere; }
+.cbi-input-invalid, input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--error-color-high); }
+input:disabled, select:disabled, textarea:disabled,
+button:disabled, .cbi-button:disabled, .cbi-dropdown[disabled] { opacity: .7; cursor: not-allowed; }
+.cbi-dropdown:focus-visible, .rmm-table-scroll:focus-visible {
+	outline: 2px solid var(--rmm-accent-hover);
+	outline-offset: 2px;
+}
+.cbi-dropdown[open] > ul.dropdown {
+	background: var(--rmm-surface-2);
+	border: 1px solid var(--rmm-border-strong);
+	border-radius: 4px;
+	box-shadow: none;
+	min-width: min(100%, calc(100vw - 24px));
+	max-width: calc(100vw - 24px);
+}
+/* LuCI writes inline popup geometry; own only geometry to keep it in the viewport. */
+.cbi-dropdown[open] > ul.dropdown.rmm-dropdown-panel {
+	position: fixed;
+	left: var(--rmm-dropdown-left) !important;
+	top: var(--rmm-dropdown-top) !important;
+	width: var(--rmm-dropdown-width) !important;
+	min-width: 0;
+	max-height: var(--rmm-dropdown-height) !important;
+	overflow-y: auto;
+}
+.cbi-dropdown[open] > ul.dropdown > li { white-space: normal; overflow-wrap: anywhere; }
+.cbi-dropdown[open] > ul.dropdown > li[selected].focus,
+.cbi-dropdown[open] > ul.dropdown > li[selected]:hover { background: var(--rmm-accent-hover); }
+.rmm-table-scroll { max-width: 100%; overflow: auto; margin-bottom: 16px; }
+.rmm-table-scroll > .table { margin-bottom: 0; }
+.rmm-records { table-layout: fixed; }
+.rmm-records :is(.td, .th), .rmm-key-values :is(.td, .th) { white-space: normal; overflow-wrap: anywhere; }
+.rmm-records .nowrap { white-space: normal; }
+.rmm-records :is(input, select, .cbi-dropdown), .rmm-key-values :is(input, select, .cbi-dropdown) { min-width: 0; max-width: 100%; }
+.rmm-records :is(.ifacebox, .ifacebadge, .zonebadge) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+pre, #syslog, .command-output, .uci-change-list {
+	max-width: 100%;
+	overflow: auto;
+	font-family: var(--font-mono);
+	line-height: 1.55;
+	background: var(--rmm-bg);
+	border: 1px solid var(--rmm-border);
+	border-radius: 4px;
+	padding: 12px;
+}
+.uci-change-list { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rmm-diag-label { display: block; font-size: 12px; color: var(--rmm-muted); margin-bottom: 6px; }
+.rmm-diagnostics input { min-width: 0; max-width: 100%; }
+.modal { min-width: 0; }
+.modal:not(.login) {
+	width: min(560px, calc(100% - 24px));
+	max-height: calc(100dvh - 24px);
+	overflow: auto;
+	margin: 12px auto;
+}
+/* Upstream IDs own wide dialog sizes, so retain their specificity here. */
+#modal_overlay > .modal.cbi-modal, #modal_overlay > .modal.uci-dialog { max-width: 760px; width: calc(100% - 24px); }
+.modal .button-row { display: flex; flex-wrap: wrap; gap: 8px; position: sticky; bottom: 0; background: var(--rmm-surface); padding-top: 8px; }
+.modal .button-row > button { float: none; margin: 0; }
+.modal.login input, .modal.login button { min-height: var(--rmm-control-touch); }
+
+@media (pointer: coarse) {
+	.rmm-global-nav .nav .dropdown-menu li a { min-height: var(--rmm-control-touch); }
+	label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { display: inline-flex; align-items: center; min-height: var(--rmm-control-touch); }
+	button, .btn, .cbi-button, select,
+	input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), .cbi-dropdown {
+		min-height: var(--rmm-control-touch);
+	}
+	button, .btn, .cbi-button, .cbi-dropdown > .open { min-width: var(--rmm-control-touch); }
+	.cbi-dropdown[open] > ul.dropdown > li, .tabs > li > a, .cbi-tabmenu > li > a { min-height: var(--rmm-control-touch); }
+	.cbi-value-field > label { display: inline-flex; align-items: center; min-height: var(--rmm-control-touch); }
+}
+
+@media (max-width: 599px) {
+	.rmm-table-scroll:has(> .rmm-records), .rmm-table-scroll:has(> .rmm-key-values) { overflow: visible; }
+	.rmm-records, .rmm-records > :is(thead, tbody, tfoot), .rmm-key-values,
+	.rmm-key-values > :is(thead, tbody, tfoot), .rmm-diagnostics, .rmm-diagnostics > tbody { display: block; width: 100%; }
+	/* Retain header content/semantics and sorting controls in a compact scroll row. */
+	.rmm-records .rmm-table-head { display: flex; max-width: 100%; overflow-x: auto; }
+	.rmm-records .rmm-table-head > :is(.th, th) { display: block; flex: 0 0 auto; font-size: 11px; padding: 6px; }
+	.rmm-records .rmm-record-row {
+		display: block;
+		border-top: 1px solid var(--rmm-border-strong);
+		padding: 8px 0;
+	}
+	.rmm-records .rmm-record-row[data-title]::before {
+		content: attr(data-title);
+		display: block;
+		font-weight: 600;
+		padding: 6px 8px;
+	}
+	/* LuCI supplies per-column inline widths; mobile records own these dimensions. */
+	.rmm-records .rmm-record-row > :is(.td, td, .th, th) {
+		display: block;
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100%;
+		padding: 6px 8px;
+		border-top: 0;
+		white-space: normal;
+		overflow: visible;
+	}
+	.rmm-records .rmm-record-row > [data-rmm-label]:not([data-rmm-label=""])::before {
+		content: attr(data-rmm-label);
+		display: block;
+		color: var(--rmm-muted);
+		font: 400 12px/1.4 var(--font-sans);
+		margin-bottom: 4px;
+	}
+	.rmm-records .cbi-section-actions > div { display: flex; flex-wrap: wrap; gap: 6px; }
+	.rmm-key-values .tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 6px 0; }
+	.rmm-key-values .tr > :is(.td, .th) { display: block; width: auto; padding: 4px 8px; border: 0; }
+	.rmm-key-values .tr > :first-child { color: var(--rmm-muted); }
+	.rmm-diagnostics .tr, .rmm-diagnostics .td { display: block; width: 100%; }
+	.rmm-diagnostics .td { padding: 12px 0; }
+	.rmm-diagnostics :is(input, .cbi-dropdown, .diag-action, button) { width: 100%; }
+	.rmm-diagnostics input { margin-bottom: 8px; }
+	.cbi-page-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; }
+	.cbi-page-actions > :is(button, input, .btn) { float: none; margin: 0; }
+	button, .btn, .cbi-button, select, .cbi-dropdown,
+	input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]) { min-height: var(--rmm-control-touch); }
+	.cbi-dropdown[open] > ul.dropdown > li { min-height: var(--rmm-control-touch); }
+	.tabs > li > a, .cbi-tabmenu > li > a { min-height: var(--rmm-control-touch); }
+	.modal .button-row > button { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.cbi-dropdown[open] > ul.dropdown, .cbi-tooltip { transition: none; }
+}
+
 @media (max-width: 854px) {
 	header { padding: 0 12px; }
 	header .brand { min-width: 0; max-width: 65%; overflow-wrap: anywhere; white-space: normal; }
@@ -291,8 +440,7 @@ body:has(> section[hidden]) .modal { background: var(--rmm-surface); border: 1px
 	}
 	header { min-height: 48px; margin-bottom: 12px; }
 	header .brand {
-		/* Bootstrap mobile.css hides the brand with !important. */
-		display: block !important;
+		display: block;
 		flex: 1 1 auto;
 		max-width: none;
 		padding: 8px 8px 8px 0;

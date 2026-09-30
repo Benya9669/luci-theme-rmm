@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
 
-function setup(width) {
+function setup(width, pathname = '/cgi-bin/luci/admin/status/overview', route = null) {
   const handlers = {};
   const listen = (scope) => (name, callback) => { handlers[scope + name] = callback; };
   const classes = () => {
@@ -27,8 +27,13 @@ function setup(width) {
     focus() { focus = trigger; handlers.menufocusin?.({ target: trigger }); },
     click() { handlers.menuclick({ target: trigger, preventDefault() {} }); }
   };
+  const linkAttributes = {};
   const link = {
     href: 'http://router/cgi-bin/luci/admin/status/overview',
+    classList: classes(),
+    getAttribute: key => key === 'href' ? '/cgi-bin/luci/admin/status/overview' : linkAttributes[key],
+    setAttribute: (key, value) => { linkAttributes[key] = value; },
+    removeAttribute: key => { delete linkAttributes[key]; },
     closest: () => group,
     matches: () => false
   };
@@ -44,16 +49,16 @@ function setup(width) {
     children: [group], classList: classes(), addEventListener: listen('menu'),
     contains: target => target === group || group.contains(target),
     querySelector: () => group.classList.contains('rmm-open') ? group : null,
-    querySelectorAll: selector => selector === ':scope > li.dropdown' ? [group] : []
+    querySelectorAll: selector => selector === ':scope > li.dropdown' ? [group] : selector === 'a[href]' ? [link] : []
   };
   const document = {
     readyState: 'complete', getElementById: () => menu, addEventListener: listen('document'),
-    body: { classList: classes() },
+    body: { classList: classes(), getAttribute: () => route },
     documentElement: { style: { setProperty() {}, removeProperty() {} } }
   };
   let destination;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../packages/luci-theme-rmm/htdocs/luci-static/rmm/navigation.js'), 'utf8'), {
-    document, location: { pathname: '/cgi-bin/luci/admin/status/overview' },
+    document, location: { pathname, href: 'http://router' + pathname, origin: 'http://router' },
     window: {
       matchMedia: query => ({ matches: query.includes('599') ? width < 600 : width >= 900 }),
       addEventListener: listen('window'), location: { assign: value => { destination = value; } }
@@ -61,7 +66,7 @@ function setup(width) {
     MutationObserver: class { observe() {} }, URL, Promise
   });
   return {
-    trigger, link, attributes, group, handlers,
+    trigger, link, attributes, group, handlers, linkAttributes,
     mouseFocus() { keyboard = false; trigger.focus(); },
     get focus() { return focus; }, get destination() { return destination; },
     get open() { return group.classList.contains('rmm-open'); }
@@ -114,4 +119,19 @@ test('desktop group navigates to first child and has no disclosure state', () =>
   page.trigger.click();
   assert.equal(page.destination, page.link.href);
   assert.equal(page.attributes['aria-expanded'], undefined);
+});
+
+test('dispatcher route highlights the overview behind the root entry alias', () => {
+  const page = setup(768, '/cgi-bin/luci/', '/cgi-bin/luci/admin/status/overview');
+  assert.equal(page.linkAttributes['aria-current'], 'page');
+});
+
+test('visible URL highlights direct routes when no resolved route is supplied', () => {
+  const page = setup(768);
+  assert.equal(page.linkAttributes['aria-current'], 'page');
+});
+
+test('foreign resolved routes cannot change current destination', () => {
+  const page = setup(768, '/cgi-bin/luci/', 'https://foreign.example/cgi-bin/luci/admin/status/overview');
+  assert.equal(page.linkAttributes['aria-current'], undefined);
 });

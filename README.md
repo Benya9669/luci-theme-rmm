@@ -39,8 +39,8 @@ is MIT licensed. Design rules are in `DESIGN.md`.
 
 ## Current release
 
-Version **0.2.0** introduces the responsive P1 shell and mobile login fixes.
-See [release notes](docs/release-0.2.0.md) for changes, upgrade verification and
+Version **0.3.0** adds P2 components: labelled mobile records, local table scrolling, touch controls, bounded dropdowns/dialogs and entry-route highlighting.
+See [release notes](docs/release-0.3.0.md) for changes, upgrade verification and
 remaining device testing.
 
 ## GitHub Releases and shared feed
@@ -61,3 +61,9 @@ run the RMM workflow **Sync LuCI release into signed package feed** manually.
 
 This repository has a source remote at `git@github.com:Benya9669/luci-theme-rmm.git`.
 No source or release is published merely by creating the local checkout.
+
+## Component checks
+
+Run `npm ci --ignore-scripts --no-audit --no-fund` and `npm test`.
+The locked DOM test dependency is not shipped in either LuCI package.
+Actions runs these checks before the two SDK builds.

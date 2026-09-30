@@ -38,8 +38,8 @@
 .rmm-dashboard dt { color: var(--rmm-muted, #a3aaae); font-weight: 400; }
 .rmm-dashboard dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .rmm-dashboard-value { font: 500 13px/1.5 var(--font-mono, 'IBM Plex Mono', SFMono-Regular, Consolas, monospace); }
-.rmm-dashboard-ok { color: #92ad98; }
-.rmm-dashboard-warning { color: #c2ad7b; }
+.rmm-dashboard-ok { color: var(--rmm-success, #77957d); }
+.rmm-dashboard-warning { color: var(--rmm-warning, #b19a6b); }
 .rmm-dashboard-note { margin: 12px 0 0; }
 @media (max-width: 760px) {
 	.rmm-dashboard-grid { grid-template-columns: 1fr; }
