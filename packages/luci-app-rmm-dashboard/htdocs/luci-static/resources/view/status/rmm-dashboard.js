@@ -10,9 +10,32 @@ var callServices = rpc.declare({ object: 'service', method: 'list', params: [ 'n
 
 var callDevices = rpc.declare({ object: 'network.device', method: 'status', expect: { '': {} } });
 
+var callWifiDevices = rpc.declare({ object: 'iwinfo', method: 'devices', expect: { '': {} } });
+var callWifiInfo = rpc.declare({ object: 'iwinfo', method: 'info', params: ['device'], expect: { '': {} } });
+var callWifiStations = rpc.declare({ object: 'iwinfo', method: 'assoclist', params: ['device'], expect: { '': {} } });
+var callLeases = rpc.declare({ object: 'luci-rpc', method: 'getDHCPLeases', expect: { '': {} } });
+
 var callConfig = rpc.declare({ object: 'uci', method: 'get', params: [ 'config', 'section' ], expect: { values: {} } });
 
 var russian = {
+	"Wireless": "Беспроводная сеть",
+	"Associated stations": "Подключённые станции",
+	"Radio": "Радиомодуль",
+	"Band": "Диапазон",
+	"Channel": "Канал",
+	"Channel mode": "Режим канала",
+	"TX power": "Мощность TX",
+	"Noise": "Шум",
+	"Signal": "Сигнал",
+	"Link rate RX / TX": "Скорость соединения RX / TX",
+	"MAC address": "MAC-адрес",
+	"Connected time": "Время подключения",
+	"No associated stations": "Нет подключённых станций",
+	"No wireless interfaces reported": "Беспроводные интерфейсы не найдены",
+	"No local DHCP record": "Нет локальной DHCP-записи",
+	"Wireless interfaces visible to iwinfo are shown; disabled radios are not inventoried.": "Показаны интерфейсы, доступные iwinfo; выключенные радиомодули не входят в этот список.",
+	"Link rates are negotiated Wi-Fi rates, not measured traffic.": "Скорость Wi-Fi-соединения не равна фактическому трафику.",
+	"Invalid station records": "Некорректные записи станций",
 	'Traffic history': 'История трафика', 'Memory history': 'История памяти',
 	'Last 5 minutes': 'Последние 5 минут', 'Peak': 'Максимум',
 	'History starts when this page opens. Gaps indicate unavailable data.': 'История начинается при открытии страницы. Разрывы означают отсутствие данных.',
@@ -171,6 +194,46 @@ function firstAddress(iface) {
 	return Array.isArray(addresses) && addresses.length && addresses[0] && typeof addresses[0].address === 'string' ? addresses[0].address : tr('No address');
 }
 
+function wifiLoad() {
+	return callWifiDevices().then(function(reply) {
+		if (!reply || !Array.isArray(reply.devices) || reply.devices.length > 64 || reply.devices.some(function(name) { return typeof name !== 'string' || !/^[A-Za-z0-9_.:-]{1,64}$/.test(name); })) throw new Error('Invalid wireless interfaces');
+		return Promise.all(Array.from(new Set(reply.devices)).sort().map(function(device) {
+			return Promise.all([requested(function() { return callWifiInfo(device); }, function(info) { return typeof info.phy === 'string' || typeof info.ssid === 'string' || typeof info.mode === 'string'; }),
+				requested(function() { return callWifiStations(device); }, function(reply) { return Array.isArray(reply.results); })]).then(function(results) { return {device:device,info:results[0],stations:results[1]}; });
+		})).then(function(interfaces) { return {interfaces:interfaces}; });
+	});
+}
+function cachedResult(result, previous) { return result.error ? {value:previous && previous.value,at:previous && previous.at,error:result.error} : result; }
+function signalText(value) {
+	if (typeof value !== 'number' || !Number.isInteger(value)) return tr('Unavailable');
+	if (value > 2147483647 && value <= 4294967295) value -= 4294967296;
+	return value < 0 && value >= -127 ? value + ' dBm' : tr('Unavailable');
+}
+function bandName(info) {
+	var frequency = info.frequency;
+	return finite(frequency) ? frequency >= 2400 && frequency < 2500 ? '2.4 GHz' : frequency >= 4900 && frequency < 5925 ? '5 GHz' : frequency >= 5925 && frequency <= 7125 ? '6 GHz' : frequency >= 57000 && frequency <= 71000 ? '60 GHz' : tr('Unavailable') : tr('Unavailable');
+}
+function linkRate(value) { return value && finite(value.rate) && value.rate > 0 ? (value.rate / 1000).toFixed(1) + ' Mbit/s' : tr('Unavailable'); }
+function resultLine(label, result, parentError) {
+	var error = parentError || result.error;
+	var stale = result.value && (error || !sourceFresh(result, Date.now()));
+	var state = stale ? tr('Stale') + (error ? ' · ' + failure(error) : '') : error ? failure(error) : tr('Current');
+	return E('p', { 'class':'rmm-dashboard-source' }, [label + ': ' + state + ' · ' + tr('Last successful update') + ': ', E('time', {datetime:result.at ? new Date(result.at).toISOString() : ''}, clock(result.at))]);
+}
+function stationList(reply) { return reply && Array.isArray(reply.results) ? reply.results.filter(function(row) { return row && typeof row.mac === 'string' && /^(?:[0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(row.mac); }) : []; }
+function leaseMap(reply) {
+	var hosts = Object.create(null);
+	['dhcp_leases','dhcp6_leases'].forEach(function(key) {
+		(Array.isArray(reply[key]) ? reply[key] : []).forEach(function(lease) {
+			if (!lease || typeof lease.macaddr !== 'string' || !/^(?:[0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(lease.macaddr)) return;
+			var host = hosts[lease.macaddr.toUpperCase()] || (hosts[lease.macaddr.toUpperCase()] = {addresses:[]});
+			if (typeof lease.hostname === 'string' && lease.hostname.length && lease.hostname !== '*') host.name = lease.hostname;
+			[lease.ipaddr,lease.ip6addr].concat(Array.isArray(lease.ip6addrs) ? lease.ip6addrs : []).forEach(function(address) { if (typeof address === 'string' && address.length && !host.addresses.includes(address)) host.addresses.push(address); });
+		});
+	});
+	return hosts;
+}
+
 return view.extend({
 	load: function() {
 		if (this.pending) return this.pending;
@@ -183,7 +246,9 @@ return view.extend({
 				if (!v || !Object.keys(v).length) throw new Error('No agent configuration');
 				return { enabled: v.enabled, heartbeat: v.interval_seconds, connectivity: v.connectivity_check_interval_seconds };
 			}); }),
-			requested(callDevices)
+			requested(callDevices),
+			requested(wifiLoad),
+			requested(callLeases, function(reply) { return Array.isArray(reply.dhcp_leases) || Array.isArray(reply.dhcp6_leases); })
 		]).finally(L.bind(function() { this.pending = null; }, this));
 		return this.pending;
 	},
@@ -197,7 +262,7 @@ return view.extend({
 		this.status = E('span', { 'class': 'rmm-dashboard-refresh', role: 'status', 'aria-live': 'polite' }, tr('Loading'));
 		this.retry = E('button', { 'class': 'btn', type: 'button', click: L.bind(function() { return this.refresh(); }, this) }, tr('Retry'));
 		var root = E('div', { 'class': 'rmm-dashboard' });
-		var sections = [ ['system', 'System'], ['network', 'Network'], ['agent', 'RMM agent'] ].map(L.bind(function(entry) {
+		var sections = [ ['system', 'System'], ['network', 'Network'], ['wireless', 'Wireless'], ['agent', 'RMM agent'] ].map(L.bind(function(entry) {
 			this.slots[entry[0]] = E('div', { 'class': 'rmm-dashboard-content' });
 			return E('section', { 'class': 'rmm-dashboard-section' }, [ E('h2', {}, tr(entry[1])), this.slots[entry[0]] ]);
 		}, this));
@@ -228,11 +293,21 @@ return view.extend({
 	update: function(root, data) {
 		var previousDevices = this.sources[5];
 		var previousInfo = this.sources[1];
+		var previousWireless = this.sources[6];
 		data.forEach(L.bind(function(result, index) {
 			var previous = this.sources[index];
 			this.sources[index] = result.error ? { value: previous && previous.value, at: previous && previous.at, error: result.error } : result;
 		}, this));
 		var sources = this.sources;
+		if (sources[6].value && !sources[6].error) {
+			var oldWireless = Object.create(null);
+			((previousWireless && previousWireless.value && previousWireless.value.interfaces) || []).forEach(function(entry) { oldWireless[entry.device] = entry; });
+			sources[6] = Object.assign({}, sources[6], {value:{interfaces:sources[6].value.interfaces.map(function(entry) {
+				var previous = oldWireless[entry.device];
+				return {device:entry.device,info:cachedResult(entry.info,previous && previous.info),stations:cachedResult(entry.stations,previous && previous.stations)};
+			})}});
+		}
+
 		function state(index) {
 			var source = sources[index];
 			var stale = !!source.value && (!!source.error || Date.now() - source.at > 65000);
@@ -293,14 +368,40 @@ return view.extend({
 		Object.keys(history.devices).forEach(function(name) { if (!seenDevices[name]) delete history.devices[name]; });
 		if (!entries.length) networkRows.push(E('p', { 'class': 'rmm-dashboard-source' }, sources[2].error ? failure(sources[2].error) : tr('No interfaces')));
 		this.slots.network.replaceChildren.apply(this.slots.network, networkRows);
+		var wirelessRows = [sourceLine('iwinfo.devices',6),sourceLine('luci-rpc.getDHCPLeases',7),E('p',{'class':'rmm-dashboard-source'},tr('Wireless interfaces visible to iwinfo are shown; disabled radios are not inventoried.'))];
+		var wireless = sources[6].value && sources[6].value.interfaces || [];
+		var hosts = leaseMap(sources[7].value || {});
+		wireless.forEach(function(entry) {
+			var info = entry.info.value || {}, stations = stationList(entry.stations.value);
+			wirelessRows.push(E('h3',{},entry.device),resultLine('iwinfo.info',entry.info,sources[6].error),E('dl',{},[
+				item(tr('Radio'),reportedText(info.phy)),item('SSID',reportedText(info.ssid)),item(tr('Band'),bandName(info)),
+				item(tr('Channel'),finite(info.channel) && info.channel > 0 ? String(info.channel) : tr('Unavailable')),
+				item(tr('Channel mode'),reportedText(info.htmode)),item(tr('TX power'),finite(info.txpower) ? info.txpower + ' dBm' : tr('Unavailable')),
+				item(tr('Noise'),signalText(info.noise)),item(tr('Associated stations'),entry.stations.value ? String(stations.length) : failure(entry.stations.error))
+			]),resultLine('iwinfo.assoclist',entry.stations,sources[6].error));
+			if (entry.stations.value && entry.stations.value.results.length !== stations.length) wirelessRows.push(E('p',{'class':'rmm-dashboard-source rmm-dashboard-warning'},tr('Invalid station records') + ': ' + (entry.stations.value.results.length - stations.length)));
+			stations.forEach(function(station) {
+				var mac = station.mac.toUpperCase(), host = hosts[mac] || {};
+				wirelessRows.push(E('div',{'class':'rmm-dashboard-station'},[E('h4',{},host.name || mac),E('dl',{},[
+					item(tr('MAC address'),mac),item(tr('IP address'),host.addresses && host.addresses.length ? host.addresses.join(' / ') : tr('No local DHCP record')),
+					item(tr('Signal'),signalText(station.signal)),item(tr('Link rate RX / TX'),linkRate(station.rx) + ' / ' + linkRate(station.tx)),item(tr('Connected time'),formatDuration(station.connected_time))
+				])]));
+			});
+			if (entry.stations.value && !entry.stations.value.results.length) wirelessRows.push(E('p',{'class':'rmm-dashboard-source'},tr('No associated stations')));
+		});
+		if (!wireless.length) wirelessRows.push(E('p',{'class':'rmm-dashboard-source'},sources[6].error ? failure(sources[6].error) : tr('No wireless interfaces reported')));
+		wirelessRows.push(E('p',{'class':'rmm-dashboard-source'},tr('Link rates are negotiated Wi-Fi rates, not measured traffic.')));
+		this.slots.wireless.replaceChildren.apply(this.slots.wireless,wirelessRows);
 		var agentStatus = !sources[3].value ? failure(sources[3].error) : !agent ? tr('Not installed') : running ? tr('Running') : !sources[4].value ? failure(sources[4].error) : config.enabled === '1' ? tr('Stopped') : tr('Disabled');
 		this.slots.agent.replaceChildren(sourceLine('service.list', 3), sourceLine('uci rmm-agent', 4), E('dl', {}, [
 			item(tr('Status'), agentStatus, running ? 'ok' : agent ? 'warning' : ''),
 			item(tr('Heartbeat interval'), sources[4].value ? (config.heartbeat || '30') + ' ' + tr('s') : failure(sources[4].error)),
 			item(tr('Connectivity check interval'), sources[4].value ? (config.connectivity || '300') + ' ' + tr('s') : failure(sources[4].error))
 		]));
+		var nestedErrors = wireless.some(function(entry) { return entry.info.error || entry.stations.error; });
 		var errors = sources.filter(function(s) { return s.error; }).length;
-		var stateCode = errors ? sources.some(function(s) { return s.error && s.value; }) ? 'Stale' : errors === sources.length ? 'Unavailable' : 'Partial data' : 'Current';
+		var cachedWirelessError = wireless.some(function(entry) { return entry.info.error && entry.info.value || entry.stations.error && entry.stations.value; });
+		var stateCode = sources.some(function(s) { return s.value && !sourceFresh(s, Date.now()); }) || cachedWirelessError ? 'Stale' : errors === sources.length ? 'Unavailable' : errors || nestedErrors ? 'Partial data' : 'Current';
 		// Announce only state transitions, not every successful telemetry poll.
 		var statusText = tr(stateCode);
 		if (this.status.textContent !== statusText) this.status.textContent = statusText;

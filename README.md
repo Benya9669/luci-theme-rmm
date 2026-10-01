@@ -96,3 +96,21 @@ P2 headerless interface-table corrections and P3 dashboard are described in
 [0.4.0 notes](docs/release-0.4.0.md). The local package versions are 0.4.0-r1;
 router verification remains pending. Read permissions add only
 network.device.status; the overview performs no Internet probes or writes.
+
+## Wireless overview (prepared for 0.5.0)
+
+The dashboard reads active Wi-Fi interfaces through iwinfo devices/info/assoclist.
+It shows radio, SSID, band, channel, reported channel mode, TX power, noise,
+associated stations, signal and negotiated RX/TX link rates. Missing values stay
+unavailable; disabled radios are not inventoried by this endpoint. Link rates
+are Mbit/s, not measured client traffic. Names and IPv4/IPv6 addresses come from
+local DHCP leases; static clients without leases show their MAC. No reverse DNS
+queries, scans or wireless credential reads are performed.
+
+The package requires rpcd-mod-iwinfo and rpcd-mod-luci. Its read ACL adds only
+iwinfo devices/info/assoclist and luci-rpc getDHCPLeases. Upgrade the package and
+log in again so the session receives its new ACL. Verify with an associated
+station: SSID/channel, DHCP identity and signal should match the router's native
+Wireless page. Reads share the existing 30-second poll; each source retains its
+last successful timestamp on failure and recovers independently. Test both
+RMM and Bootstrap at 320–1440 px after installation.

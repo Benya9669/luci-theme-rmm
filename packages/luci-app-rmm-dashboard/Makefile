@@ -2,7 +2,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=OpenWrt RMM router dashboard
-LUCI_DEPENDS:=+luci-base +luci-mod-status
+LUCI_DEPENDS:=+luci-base +luci-mod-status +rpcd-mod-iwinfo +rpcd-mod-luci
 LUCI_PKGARCH:=all
 LUCI_DESCRIPTION:=Read-only router and RMM agent overview for LuCI.
 

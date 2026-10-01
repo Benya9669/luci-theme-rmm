@@ -11,6 +11,10 @@
 - Five-minute memory and RX/TX history from the existing 30-second poll;
   bounded browser memory, source failure gaps, counter resets and reboots
   handled, shared devices plotted once without summing interface counters.
+- Active Wi-Fi radio/SSID/channel overview and associated stations with local
+  DHCP names/addresses, signal and negotiated RX/TX rates. Read-only iwinfo
+  and DHCP lease ACLs; no scans, reverse DNS or Wi-Fi credential reads.
+  Independent failure caching; missing/disabled radios are not invented.
 - Theme install removes uci-defaults only after successful execution.
 
 ## Verification
@@ -23,4 +27,4 @@ by UI checks. Deploy RMM feed support before publishing this release.
 ## Following stages
 
 [ROADMAP.md](../ROADMAP.md) describes the Vantage-inspired telemetry history,
-wireless radios/SSID, clients, network relationships and search. Wireless radios/SSID, clients, network relationships and search are next.
+wireless radios/SSID, clients, network relationships and search. Client filters/details, network relationships and search are next.

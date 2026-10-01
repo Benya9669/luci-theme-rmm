@@ -184,3 +184,57 @@ msgstr "Максимум"
 
 msgid "History starts when this page opens. Gaps indicate unavailable data."
 msgstr "История начинается при открытии страницы. Разрывы означают отсутствие данных."
+
+msgid "Wireless"
+msgstr "Беспроводная сеть"
+
+msgid "Associated stations"
+msgstr "Подключённые станции"
+
+msgid "Radio"
+msgstr "Радиомодуль"
+
+msgid "Band"
+msgstr "Диапазон"
+
+msgid "Channel"
+msgstr "Канал"
+
+msgid "Channel mode"
+msgstr "Режим канала"
+
+msgid "TX power"
+msgstr "Мощность TX"
+
+msgid "Noise"
+msgstr "Шум"
+
+msgid "Signal"
+msgstr "Сигнал"
+
+msgid "Link rate RX / TX"
+msgstr "Скорость соединения RX / TX"
+
+msgid "MAC address"
+msgstr "MAC-адрес"
+
+msgid "Connected time"
+msgstr "Время подключения"
+
+msgid "No associated stations"
+msgstr "Нет подключённых станций"
+
+msgid "No wireless interfaces reported"
+msgstr "Беспроводные интерфейсы не найдены"
+
+msgid "No local DHCP record"
+msgstr "Нет локальной DHCP-записи"
+
+msgid "Wireless interfaces visible to iwinfo are shown; disabled radios are not inventoried."
+msgstr "Показаны интерфейсы, доступные iwinfo; выключенные радиомодули не входят в этот список."
+
+msgid "Link rates are negotiated Wi-Fi rates, not measured traffic."
+msgstr "Скорость Wi-Fi-соединения не равна фактическому трафику."
+
+msgid "Invalid station records"
+msgstr "Некорректные записи станций"

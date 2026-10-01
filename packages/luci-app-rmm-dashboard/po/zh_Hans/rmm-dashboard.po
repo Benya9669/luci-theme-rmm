@@ -190,3 +190,57 @@ msgstr "峰值"
 
 msgid "History starts when this page opens. Gaps indicate unavailable data."
 msgstr "历史记录从打开此页面开始。断点表示数据不可用。"
+
+msgid "Wireless"
+msgstr "无线网络"
+
+msgid "Associated stations"
+msgstr "关联站点"
+
+msgid "Radio"
+msgstr "无线电"
+
+msgid "Band"
+msgstr "频段"
+
+msgid "Channel"
+msgstr "信道"
+
+msgid "Channel mode"
+msgstr "信道模式"
+
+msgid "TX power"
+msgstr "发射功率"
+
+msgid "Noise"
+msgstr "噪声"
+
+msgid "Signal"
+msgstr "信号"
+
+msgid "Link rate RX / TX"
+msgstr "接收 / 发送连接速率"
+
+msgid "MAC address"
+msgstr "MAC 地址"
+
+msgid "Connected time"
+msgstr "连接时间"
+
+msgid "No associated stations"
+msgstr "没有关联站点"
+
+msgid "No wireless interfaces reported"
+msgstr "没有报告无线接口"
+
+msgid "No local DHCP record"
+msgstr "没有本地 DHCP 记录"
+
+msgid "Wireless interfaces visible to iwinfo are shown; disabled radios are not inventoried."
+msgstr "仅显示 iwinfo 可见的无线接口，不列出已禁用的无线电。"
+
+msgid "Link rates are negotiated Wi-Fi rates, not measured traffic."
+msgstr "连接速率为协商的 Wi-Fi 速率，并非实际流量。"
+
+msgid "Invalid station records"
+msgstr "无效站点记录"

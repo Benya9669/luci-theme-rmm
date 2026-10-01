@@ -66,3 +66,7 @@
 .rmm-dashboard-chart-rx, .rmm-dashboard-chart-used { stroke: var(--rmm-accent, #6f8999); }
 .rmm-dashboard-chart-tx { stroke: var(--rmm-success, #77957d); stroke-dasharray: 5 3; }
 .rmm-dashboard-chart-scale, .rmm-dashboard-chart-times { margin: 4px 0 0; font-family: var(--font-mono, Consolas, monospace); }
+
+.rmm-dashboard-station { margin: 8px 16px; border-top: 1px solid var(--rmm-border, #283034); }
+.rmm-dashboard-station h4 { margin: 12px 0 4px; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.rmm-dashboard-station dl { padding: 0; }
