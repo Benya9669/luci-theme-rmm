@@ -13,6 +13,11 @@ function fixture() {
   const replies = {};
   function E(tag, attrs, content) {
     const el = document.createElement(tag);
+    // linkedom exposes select.value as read-only; browsers also provide its setter.
+    if (tag === 'select') {
+      const getter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value').get;
+      Object.defineProperty(el, 'value', {get:()=>getter.call(el),set:value=>{for(const option of el.querySelectorAll('option')) option.selected=option.value===value;}});
+    }
     Object.entries(attrs || {}).forEach(([k,v]) => typeof v === 'function' ? el.addEventListener(k,v) : el.setAttribute(k,v));
     for (const child of [content].flat(Infinity)) if (child != null) el.append(typeof child === 'object' ? child : document.createTextNode(String(child)));
     return el;
@@ -39,11 +44,11 @@ function snapshot(at=100000, overrides={}) {
 
 test('system, network and agent show real metrics, timestamps and 30-second polling',()=>{
   const f=fixture(); const root=f.view.render(snapshot());
-  assert.equal(root.querySelectorAll('section').length,4);
+  assert.equal(root.querySelectorAll('section').length,5);
   assert.match(root.textContent,/75.0 MiB \(75.0%\)/);
   assert.match(root.textContent,/192.0.2.1/);
   assert.match(root.textContent,/600 с/);
-  assert.equal(root.querySelectorAll('time').length,8);
+  assert.equal(root.querySelectorAll('time').length,12);
   assert.equal(f.polls[0].seconds,30);
   assert.match(root.textContent,/Накопление данных/);
 });
@@ -271,4 +276,39 @@ test('unknown RSSI is filterable and retained identities expire after five minut
  for(let at=101000;at<=180000;at+=1000){f.time(at);f.view.update(root,wirelessSnapshot(at));}
  assert.ok(f.view.stationHistory[key].points.length<=61);
  f.time(510000);f.view.update(root,snapshot(510000));assert.equal(f.view.stationHistory[key],undefined);assert.equal(Object.keys(f.view.stationNodes).length,0);
+});
+
+
+test('relationships show IPv4/IPv6 default gateways on any reported interface and no speculative route',()=>{
+ const f=fixture(),data=wirelessSnapshot();data[2].value.interface=[{interface:'uplink',up:true,l3_device:'eth9',route:[null,{target:'0.0.0.0',mask:0,nexthop:'192.0.2.254'},{target:'::',mask:0,nexthop:'2001:db8::1'},{target:'192.0.2.0',mask:24,nexthop:'198.51.100.1'},{target:'0.0.0.0',mask:0,nexthop:'0.0.0.0'}]}];
+ f.view.render(data);const text=f.view.slots.topology.textContent;
+ assert.match(text,/uplink/);assert.match(text,/eth9/);assert.ok(text.includes('192.0.2.254 / 2001:db8::1'));assert.doesNotMatch(text,/198.51.100.1/);
+ assert.match(text,/физическая коммутация и доступ в Интернет не определяются/);
+ assert.equal(f.calls.length,0);assert.equal(f.polls.length,1);
+});
+test('relationships group only confirmed radio identities and report operating modes per SSID',()=>{
+ const f=fixture(),data=wirelessSnapshot(),iface=data[6].value.interfaces[0];iface.info.value.mode='Master';
+ data[6].value.interfaces.push({device:'phy0-ap1',info:{at:100000,value:{phy:'phy0',ssid:'Second',mode:'Client'}},stations:{at:100000,value:{results:[]}}},{device:'unknown-ap',info:{error:{code:6}},stations:{at:100000,value:{results:[]}}});
+ f.view.render(data);const topology=f.view.slots.topology;
+ assert.equal([...topology.querySelectorAll('.rmm-dashboard-topology-label')].filter(n=>n.textContent==='Радиомодуль: phy0').length,1);
+ assert.match(topology.textContent,/Радиомодуль: Недоступно/);assert.match(topology.textContent,/Точка доступа/);assert.match(topology.textContent,/Режим станции/);
+ assert.match(topology.textContent,/iwinfo.info: Нет доступа/);
+});
+test('station relationship action clears obstructing filters and opens the native disclosure without requests',()=>{
+ const f=fixture(),root=f.view.render(wirelessSnapshot()),key='phy0-ap0/02:00:00:00:00:01';
+ f.view.clientSearch.value='hidden';f.view.filterStations();assert.equal(f.view.stationNodes[key].root.hidden,true);
+ const button=f.view.slots.topology.querySelector('button');button.click();
+ assert.equal(f.view.clientSearch.value,'');assert.equal(f.view.stationNodes[key].root.hidden,false);
+ assert.ok(f.view.stationNodes[key].details.hasAttribute('open'));assert.equal(f.calls.length,0);
+ f.time(130000);f.view.update(root,wirelessSnapshot(130000));assert.equal(f.view.slots.topology.querySelector('button'),button);
+});
+test('relationship failures retain source states and recovery removes disconnected station links',()=>{
+ const f=fixture(),root=f.view.render(wirelessSnapshot());
+ f.time(130000);f.view.update(root,snapshot(130000,{6:{error:{code:6}}}));
+ assert.match(f.view.slots.topology.textContent,/iwinfo.devices: Устаревшие данные · Нет доступа/);
+ assert.match(f.view.slots.topology.textContent,/iwinfo.assoclist: Устаревшие данные · Нет доступа/);
+ assert.equal(f.view.slots.topology.querySelectorAll('button').length,1);
+ f.time(160000);f.view.update(root,snapshot(160000));assert.equal(f.view.slots.topology.querySelectorAll('button').length,0);
+ assert.match(f.view.slots.topology.textContent,/Шлюз по умолчанию не указан/);
+ assert.match(f.view.slots.topology.textContent,/Беспроводные интерфейсы не найдены/);
 });

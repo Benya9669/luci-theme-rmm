@@ -18,6 +18,15 @@ var callLeases = rpc.declare({ object: 'luci-rpc', method: 'getDHCPLeases', expe
 var callConfig = rpc.declare({ object: 'uci', method: 'get', params: [ 'config', 'section' ], expect: { values: {} } });
 
 var russian = {
+	"Network relationships": "Связи сети",
+	"Local router": "Локальный роутер",
+	"Default route gateway": "Шлюз маршрута по умолчанию",
+	"No default gateway reported": "Шлюз по умолчанию не указан",
+	"Operating mode": "Режим работы",
+	"Access point": "Точка доступа",
+	"Station mode": "Режим станции",
+	"Open station details": "Открыть детали станции",
+	"Only reported routes and Wi-Fi associations are shown; physical cabling and Internet reachability are not inferred.": "Показаны указанные маршруты и Wi-Fi-подключения; физическая коммутация и доступ в Интернет не определяются.",
 	"Search clients": "Поиск клиентов",
 	"All bands": "Все диапазоны",
 	"All signals": "Любой сигнал",
@@ -284,7 +293,7 @@ return view.extend({
 		this.status = E('span', { 'class': 'rmm-dashboard-refresh', role: 'status', 'aria-live': 'polite' }, tr('Loading'));
 		this.retry = E('button', { 'class': 'btn', type: 'button', click: L.bind(function() { return this.refresh(); }, this) }, tr('Retry'));
 		var root = E('div', { 'class': 'rmm-dashboard' });
-		var sections = [ ['system', 'System'], ['network', 'Network'], ['wireless', 'Wireless'], ['agent', 'RMM agent'] ].map(L.bind(function(entry) {
+		var sections = [ ['topology', 'Network relationships'], ['system', 'System'], ['network', 'Network'], ['wireless', 'Wireless'], ['agent', 'RMM agent'] ].map(L.bind(function(entry) {
 			this.slots[entry[0]] = E('div', { 'class': 'rmm-dashboard-content' });
 			return E('section', { 'class': 'rmm-dashboard-section' }, [ E('h2', {}, tr(entry[1])), this.slots[entry[0]] ]);
 		}, this));
@@ -464,6 +473,7 @@ return view.extend({
 		this.wirelessContent.replaceChildren.apply(this.wirelessContent,wirelessRows);
 		if (focused && focused.isConnected && this.wirelessContent.contains(focused) && typeof focused.focus === 'function') focused.focus();
 		this.filterStations();
+		this.renderRelationships();
 		var agentStatus = !sources[3].value ? failure(sources[3].error) : !agent ? tr('Not installed') : running ? tr('Running') : !sources[4].value ? failure(sources[4].error) : config.enabled === '1' ? tr('Stopped') : tr('Disabled');
 		this.slots.agent.replaceChildren(sourceLine('service.list', 3), sourceLine('uci rmm-agent', 4), E('dl', {}, [
 			item(tr('Status'), agentStatus, running ? 'ok' : agent ? 'warning' : ''),
@@ -477,6 +487,66 @@ return view.extend({
 		// Announce only state transitions, not every successful telemetry poll.
 		var statusText = tr(stateCode);
 		if (this.status.textContent !== statusText) this.status.textContent = statusText;
+	},
+
+	openStation: function(key) {
+		var nodes = this.stationNodes[key];
+		if (!nodes) return;
+		this.clientSearch.value = '';this.clientBand.value = 'all';this.clientSignal.value = 'all';this.filterStations();
+		nodes.details.setAttribute('open','');
+		if (typeof nodes.summary.focus === 'function') nodes.summary.focus();
+		if (typeof nodes.summary.scrollIntoView === 'function') nodes.summary.scrollIntoView({block:'nearest',behavior:'auto'});
+	},
+
+	renderRelationships: function() {
+		var self = this, sources = this.sources, board = sources[0].value || {}, focused = document.activeElement;
+		var interfaces = sources[2].value && sources[2].value.interface || [];
+		var wireless = sources[6].value && sources[6].value.interfaces || [];
+		var routes = [];
+		interfaces.forEach(function(iface) {
+			if (!iface || typeof iface.interface !== 'string') return;
+			var gateways = (Array.isArray(iface.route) ? iface.route : []).filter(function(route) {
+				return route && route.mask === 0 && (route.target === '0.0.0.0' || route.target === '::') && typeof route.nexthop === 'string' && route.nexthop.length && route.nexthop !== '0.0.0.0' && route.nexthop !== '::';
+			}).map(function(route) { return route.nexthop; });
+			if (gateways.length || iface.interface === 'wan' || iface.interface === 'wan6') routes.push(E('li',{},[
+				E('span',{'class':'rmm-dashboard-topology-label'},tr('Interface') + ': ' + iface.interface),E('dl',{},[
+					item(tr('Device'),reportedText(iface.l3_device || iface.device)),item(tr('Status'),typeof iface.up === 'boolean' ? tr(iface.up ? 'Connected' : 'Disconnected') : tr('Unavailable')),
+					item(tr('Default route gateway'),gateways.length ? Array.from(new Set(gateways)).join(' / ') : tr('No default gateway reported'))
+				])
+			]));
+		});
+		var radios = Object.create(null);
+		wireless.forEach(function(entry) {
+			var info = entry.info.value || {}, phy = typeof info.phy === 'string' && info.phy.length ? info.phy : null;
+			var key = phy ? 'radio/' + phy : 'interface/' + entry.device;
+			if (!radios[key]) radios[key] = {phy:phy,interfaces:[]};
+			var mode = info.mode === 'Master' ? tr('Access point') : info.mode === 'Client' ? tr('Station mode') : reportedText(info.mode);
+			var stations = stationList(entry.stations.value).map(function(station) {
+				var nodes = self.stationNodes[entry.device + '/' + station.mac.toUpperCase()];
+				if (!nodes) return null;
+				if (!nodes.topologyButton) nodes.topologyButton = E('button',{type:'button','class':'btn',click:L.bind(function() { this.openStation(entry.device + '/' + station.mac.toUpperCase()); },self)});
+				nodes.topologyButton.textContent = nodes.title.textContent + ' · ' + station.mac.toUpperCase();
+				nodes.topologyButton.setAttribute('aria-label',tr('Open station details') + ': ' + nodes.title.textContent + ' · ' + station.mac.toUpperCase());
+				return E('li',{},nodes.topologyButton);
+			}).filter(Boolean);
+			radios[key].interfaces.push(E('li',{},[
+				E('span',{'class':'rmm-dashboard-topology-label'},'SSID: ' + reportedText(info.ssid)),
+				E('dl',{},[item(tr('Interface'),entry.device),item(tr('Band'),bandName(info)),item(tr('Operating mode'),mode)]),
+				resultLine('iwinfo.info',entry.info,sources[6].error),resultLine('iwinfo.assoclist',entry.stations,sources[6].error),
+				stations.length ? E('ul',{},stations) : E('p',{'class':'rmm-dashboard-source'},entry.stations.error && !entry.stations.value ? failure(entry.stations.error) : entry.stations.value && entry.stations.value.results.length === 0 ? tr('No associated stations') : tr('Unavailable'))
+			]));
+		});
+		var radioRows = Object.keys(radios).map(function(key) { return E('li',{},[E('span',{'class':'rmm-dashboard-topology-label'},tr('Radio') + ': ' + reportedText(radios[key].phy)),E('ul',{},radios[key].interfaces)]); });
+		this.slots.topology.replaceChildren(
+			E('p',{'class':'rmm-dashboard-source'},tr('Only reported routes and Wi-Fi associations are shown; physical cabling and Internet reachability are not inferred.')),
+			resultLine('system.board',sources[0]),resultLine('network.interface.dump',sources[2]),resultLine('iwinfo.devices',sources[6]),resultLine('luci-rpc.getDHCPLeases',sources[7]),
+			E('ul',{'class':'rmm-dashboard-topology'},[E('li',{},[
+				E('span',{'class':'rmm-dashboard-topology-label'},tr('Local router') + ': ' + reportedText(board.hostname)),
+				routes.length ? E('ul',{},routes) : E('p',{'class':'rmm-dashboard-source'},sources[2].error && !sources[2].value ? failure(sources[2].error) : tr('No default gateway reported')),
+				radioRows.length ? E('ul',{},radioRows) : E('p',{'class':'rmm-dashboard-source'},sources[6].error && !sources[6].value ? failure(sources[6].error) : tr('No wireless interfaces reported'))
+			])])
+		);
+		if (focused && focused.isConnected && this.slots.topology.contains(focused) && typeof focused.focus === 'function') focused.focus();
 	},
 
 	filterStations: function() {

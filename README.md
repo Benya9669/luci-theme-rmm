@@ -133,3 +133,20 @@ router reboots reset the history. No router writes or extra permissions.
 After installation verify search, combined filters, empty results, clearing,
 keyboard disclosure and preservation across polling at 320/390/768/1440 px
 in both RMM and Bootstrap. Device and responsive verification remain pending.
+
+## Network relationships (prepared for 0.5.0)
+
+The overview includes a responsive semantic list of the local router, reported
+uplink interfaces, default-route IPv4/IPv6 gateways, radios, SSIDs and stations.
+Gateways come from network.interface.dump route entries with a zero prefix;
+point-to-point routes without a nexthop remain explicitly unreported. Custom
+interface names with default routes are included. Radios are grouped only by
+reported phy identities; unknown identities are kept separate. Wi-Fi operating
+mode is reported per interface, not inferred as the router's global role.
+
+Select a station to clear local filters, open its details and focus the disclosure.
+The relationships use the same snapshot and source timestamps, including cached
+values on failures. They do not discover physical cabling, all LAN devices, NAT
+mode or Internet availability. No new calls, ACLs or router changes are needed.
+After installation check station links by keyboard/touch, cached source errors
+and long identifiers at 320/390/768/1440 px in RMM and Bootstrap.

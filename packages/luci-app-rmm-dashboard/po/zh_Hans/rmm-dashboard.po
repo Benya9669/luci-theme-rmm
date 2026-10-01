@@ -292,3 +292,30 @@ msgstr "按名称、MAC、IP 或 SSID 搜索"
 
 msgid "Signal bands are filters, not a connection quality score."
 msgstr "信号范围仅用于筛选，不是连接质量评分。"
+
+msgid "Network relationships"
+msgstr "网络关系"
+
+msgid "Local router"
+msgstr "本地路由器"
+
+msgid "Default route gateway"
+msgstr "默认路由网关"
+
+msgid "No default gateway reported"
+msgstr "未报告默认网关"
+
+msgid "Operating mode"
+msgstr "工作模式"
+
+msgid "Access point"
+msgstr "接入点"
+
+msgid "Station mode"
+msgstr "站点模式"
+
+msgid "Open station details"
+msgstr "打开站点详情"
+
+msgid "Only reported routes and Wi-Fi associations are shown; physical cabling and Internet reachability are not inferred."
+msgstr "仅显示报告的路由和 Wi-Fi 关联；不推断物理布线或互联网可达性。"

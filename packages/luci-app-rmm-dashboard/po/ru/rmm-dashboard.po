@@ -286,3 +286,30 @@ msgstr "Поиск по имени, MAC, IP или SSID"
 
 msgid "Signal bands are filters, not a connection quality score."
 msgstr "Диапазоны сигнала служат фильтром, а не оценкой качества соединения."
+
+msgid "Network relationships"
+msgstr "Связи сети"
+
+msgid "Local router"
+msgstr "Локальный роутер"
+
+msgid "Default route gateway"
+msgstr "Шлюз маршрута по умолчанию"
+
+msgid "No default gateway reported"
+msgstr "Шлюз по умолчанию не указан"
+
+msgid "Operating mode"
+msgstr "Режим работы"
+
+msgid "Access point"
+msgstr "Точка доступа"
+
+msgid "Station mode"
+msgstr "Режим станции"
+
+msgid "Open station details"
+msgstr "Открыть детали станции"
+
+msgid "Only reported routes and Wi-Fi associations are shown; physical cabling and Internet reachability are not inferred."
+msgstr "Показаны указанные маршруты и Wi-Fi-подключения; физическая коммутация и доступ в Интернет не определяются."

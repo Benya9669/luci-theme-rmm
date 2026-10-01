@@ -18,6 +18,9 @@
 - Local client search, band/RSSI filters and native station disclosures,
   preserved across polling. Bounded five-minute signal history with failure
   and disconnect gaps, reconnect/reboot resets; no additional requests.
+- Read-only network relationships: reported default-route gateways, router,
+  radios, SSIDs and station detail actions. Custom uplink names are supported;
+  source errors stay explicit. No physical topology or Internet inference.
 - Theme install removes uci-defaults only after successful execution.
 
 ## Verification
@@ -30,4 +33,4 @@ by UI checks. Deploy RMM feed support before publishing this release.
 ## Following stages
 
 [ROADMAP.md](../ROADMAP.md) describes the Vantage-inspired telemetry history,
-wireless radios/SSID, clients, network relationships and search. Network relationships and menu search are next; activity and client traffic require confirmed sources.
+wireless radios/SSID, clients, network relationships and search. Menu search is next; activity and client traffic require confirmed sources.
