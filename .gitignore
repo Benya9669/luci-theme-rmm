@@ -2,3 +2,4 @@
 *.ipk
 *.apk
 node_modules/
+test-results/

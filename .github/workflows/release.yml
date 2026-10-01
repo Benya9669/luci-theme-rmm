@@ -16,7 +16,42 @@ permissions:
   contents: read
 
 jobs:
+  ui:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - name: Check native passive client RPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y cmake libjson-c-dev
+          git init "$RUNNER_TEMP/rmm-ucode"
+          git -C "$RUNNER_TEMP/rmm-ucode" fetch --depth=1 https://github.com/jow-/ucode.git 3f64c8089bf3ea4847c96b91df09fbfcaec19e1d
+          git -C "$RUNNER_TEMP/rmm-ucode" checkout --detach FETCH_HEAD
+          cmake -S "$RUNNER_TEMP/rmm-ucode" -B "$RUNNER_TEMP/rmm-ucode/build" -DFS_SUPPORT=ON -DRTNL_SUPPORT=OFF -DNL80211_SUPPORT=OFF -DUBUS_SUPPORT=OFF -DUCI_SUPPORT=OFF -DULOOP_SUPPORT=OFF -DRESOLV_SUPPORT=OFF -DLOG_SUPPORT=OFF -DDIGEST_SUPPORT=OFF -DDEBUG_SUPPORT=OFF
+          cmake --build "$RUNNER_TEMP/rmm-ucode/build" --parallel 2
+          "$RUNNER_TEMP/rmm-ucode/build/ucode" tests/clients.uc
+          "$RUNNER_TEMP/rmm-ucode/build/ucode" -L "$RUNNER_TEMP/rmm-ucode/build" -L "$GITHUB_WORKSPACE/tests/fixtures/rpcd" tests/rpcd.uc
+          RMM_RPC_ERROR=1 "$RUNNER_TEMP/rmm-ucode/build/ucode" -L "$RUNNER_TEMP/rmm-ucode/build" -L "$GITHUB_WORKSPACE/tests/fixtures/rpcd" tests/rpcd.uc
+          "$RUNNER_TEMP/rmm-ucode/build/ucode" -c,dynlink=rtnl,dynlink=fs -o "$RUNNER_TEMP/rmm-dashboard.ucb" packages/luci-app-rmm-dashboard/root/usr/share/rpcd/ucode/rmm-dashboard
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: luci-ui-screenshots
+          path: test-results/
+          if-no-files-found: warn
   packages:
+    needs: ui
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false

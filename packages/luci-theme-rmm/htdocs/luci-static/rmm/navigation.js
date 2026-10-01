@@ -158,6 +158,14 @@
 			positionFlyout(group);
 		});
 		menu.addEventListener('keydown', function(event) {
+			var primary=Array.from(menu.querySelectorAll(':scope > li > a'));
+			var index=primary.indexOf(event.target);
+			if(index>=0 && ['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){
+				event.preventDefault();var next=event.key==='Home'?0:event.key==='End'?primary.length-1:(index+(event.key==='ArrowLeft'?-1:1)+primary.length)%primary.length;primary[next].focus();return;
+			}
+			if(index>=0 && event.key==='ArrowDown' && event.target.matches('a.menu')){
+				event.preventDefault();if(!event.target.parentElement.classList.contains('rmm-open'))event.target.click();event.target.parentElement.querySelector('.dropdown-menu a')?.focus();return;
+			}
 			if ((event.key === ' ' || event.key === 'Enter') && event.target.matches('li.dropdown > a.menu')) {
 				event.preventDefault();
 				event.target.click();

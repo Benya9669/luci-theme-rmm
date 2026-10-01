@@ -52,3 +52,11 @@ test('async menu updates preserve the focused destination or return to search wh
  const f=fixture(menu);f.trigger.click();f.dialog.querySelector('a').focus();await f.update();assert.equal(f.focus.getAttribute('href'),'http://router/cgi-bin/luci/admin/system/system');
  f.document.querySelector('#topmenu a[href="/cgi-bin/luci/admin/system/system"]').parentElement.remove();await f.update();assert.equal(f.focus,f.input);
 });
+
+
+test('Russian aliases only match existing authorized destinations',()=>{
+ const f=fixture(menu+'<li><a href="/cgi-bin/luci/admin/network/wireless">Беспроводная сеть</a></li>');f.trigger.click();
+ f.search('вайфай');assert.equal(f.dialog.querySelectorAll('a').length,1);assert.match(f.dialog.querySelector('a').getAttribute('href'),/wireless$/);
+ f.search('дашборд');assert.equal(f.dialog.querySelectorAll('a').length,1);
+ f.search('аренды');assert.equal(f.dialog.querySelectorAll('a').length,0);
+});

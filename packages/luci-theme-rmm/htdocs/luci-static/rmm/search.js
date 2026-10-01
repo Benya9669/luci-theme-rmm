@@ -39,7 +39,9 @@
     var group=parent && parent.querySelector(':scope > a');
     var category=group && (group.getAttribute('aria-label') || group.textContent).trim();
     var name=category && category!==label ? category + ' / ' + label : label;
-    entries.push({name:name,href:url.href,search:(name+' '+url.pathname).toLowerCase()});seen.add(url.href);
+    var synonyms={'dashboard':'обзор дашборд панель сводка','wireless':'вайфай wi-fi wifi беспроводная ssid','network':'сеть lan wan интерфейсы','dhcp':'аренды адреса клиенты leases','dns':'днс резолвер имена','firewall':'файрвол фаервол правила защита','system':'система время часы timezone','flash':'прошивка резервная копия backup обновление','startup':'автозапуск службы сервисы','reboot':'перезагрузка рестарт','package-manager':'пакеты установка opkg apk','admin':'пароль ssh доступ'};
+    var aliases=url.pathname.split('/').slice(4).map(function(part){return synonyms[part] || '';}).join(' ');
+    entries.push({name:name,href:url.href,search:(name+' '+url.pathname+' '+aliases).toLowerCase()});seen.add(url.href);
    });
    trigger.hidden=!entries.length || typeof dialog.showModal!=='function';
    if (dialog.hasAttribute('open')) renderResults();

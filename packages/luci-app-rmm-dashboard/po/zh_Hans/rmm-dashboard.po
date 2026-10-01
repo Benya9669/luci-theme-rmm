@@ -415,3 +415,120 @@ msgstr "更新问题"
 
 msgid "Resource summary"
 msgstr "资源状态"
+
+msgid "Customize dashboard"
+msgstr "自定义概览"
+
+msgid "Visible blocks and order"
+msgstr "模块及顺序"
+
+msgid "Compact mode"
+msgstr "紧凑模式"
+
+msgid "Reset layout"
+msgstr "重置布局"
+
+msgid "Move up"
+msgstr "上移"
+
+msgid "Move down"
+msgstr "下移"
+
+msgid "Clients"
+msgstr "客户端"
+
+msgid "Known DHCP clients"
+msgstr "已知 DHCP 客户端"
+
+msgid "DHCP lease; connection unconfirmed"
+msgstr "DHCP 租约；连接未经确认"
+
+msgid "Wi-Fi association"
+msgstr "Wi-Fi 连接"
+
+msgid "Connection evidence"
+msgstr "状态来源"
+
+msgid "History period"
+msgstr "历史时间范围"
+
+msgid "Last 1 minute"
+msgstr "最近 1 分钟"
+
+msgid "Last 15 minutes"
+msgstr "最近 15 分钟"
+
+msgid "Counter reset"
+msgstr "计数器重置"
+
+msgid "Data gap"
+msgstr "数据缺失"
+
+msgid "Last observation"
+msgstr "最近观测"
+
+msgid "More interfaces"
+msgstr "其他接口"
+
+msgid "Wi-Fi data unavailable"
+msgstr "Wi-Fi 数据不可用"
+
+msgid "All clients"
+msgstr "所有客户端"
+
+msgid "Connection type"
+msgstr "记录类型"
+
+msgid "DHCP records"
+msgstr "DHCP 记录"
+
+msgid "Shown / total clients"
+msgstr "已显示 / 客户端总数"
+
+msgid "Connection unconfirmed"
+msgstr "连接未经确认"
+
+msgid "Preferences unavailable; changes last until this page closes."
+msgstr "存储不可用；更改只在本页有效。"
+
+msgid "DHCP clients may use wired or wireless links; a lease does not prove an active connection."
+msgstr "DHCP 客户端可能通过有线或无线连接；租约不代表当前在线。"
+
+msgid "Ethernet path"
+msgstr "以太网路径"
+
+msgid "Neighbor records"
+msgstr "邻居记录"
+
+msgid "Via %s"
+msgstr "经由 %s"
+
+msgid "Port ambiguous"
+msgstr "多个端口"
+
+msgid "Recently reachable"
+msgstr "近期可达"
+
+msgid "Cached observation"
+msgstr "缓存记录"
+
+msgid "Static neighbor"
+msgstr "静态邻居"
+
+msgid "Neighbor unreachable"
+msgstr "邻居不可达"
+
+msgid "Neighbor state"
+msgstr "邻居状态"
+
+msgid "Bridge / VLAN"
+msgstr "网桥 / VLAN"
+
+msgid "FDB path; direct cable connection unconfirmed"
+msgstr "FDB 路径；无法确认直接有线连接"
+
+msgid "Client inventory truncated"
+msgstr "客户端列表已截断"
+
+msgid "Port link down"
+msgstr "端口链路已断开"

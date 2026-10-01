@@ -23,6 +23,9 @@
         ],
         "luci-rpc": [
           "getDHCPLeases"
+        ],
+        "rmm.dashboard": [
+          "clients"
         ]
       },
       "uci": [

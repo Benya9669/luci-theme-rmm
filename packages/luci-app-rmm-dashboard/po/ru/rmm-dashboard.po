@@ -409,3 +409,120 @@ msgstr "Проблемы обновления"
 
 msgid "Resource summary"
 msgstr "Состояние ресурсов"
+
+msgid "Customize dashboard"
+msgstr "Настроить обзор"
+
+msgid "Visible blocks and order"
+msgstr "Блоки и порядок"
+
+msgid "Compact mode"
+msgstr "Компактный режим"
+
+msgid "Reset layout"
+msgstr "Сбросить вид"
+
+msgid "Move up"
+msgstr "Выше"
+
+msgid "Move down"
+msgstr "Ниже"
+
+msgid "Preferences unavailable; changes last until this page closes."
+msgstr "Хранилище недоступно; изменения действуют до закрытия страницы."
+
+msgid "Clients"
+msgstr "Клиенты"
+
+msgid "Known DHCP clients"
+msgstr "Известные DHCP-клиенты"
+
+msgid "DHCP lease; connection unconfirmed"
+msgstr "DHCP-аренда; подключение не подтверждено"
+
+msgid "Wi-Fi association"
+msgstr "Wi-Fi-подключение"
+
+msgid "Connection evidence"
+msgstr "Источник состояния"
+
+msgid "DHCP clients may use wired or wireless links; a lease does not prove an active connection."
+msgstr "DHCP-клиенты могут быть проводными или беспроводными; аренда не подтверждает активное подключение."
+
+msgid "History period"
+msgstr "Период истории"
+
+msgid "Last 1 minute"
+msgstr "Последняя минута"
+
+msgid "Last 15 minutes"
+msgstr "Последние 15 минут"
+
+msgid "Counter reset"
+msgstr "Сброс счётчика"
+
+msgid "Data gap"
+msgstr "Пропуск данных"
+
+msgid "Last observation"
+msgstr "Последнее наблюдение"
+
+msgid "More interfaces"
+msgstr "Другие интерфейсы"
+
+msgid "Wi-Fi data unavailable"
+msgstr "Данные Wi-Fi недоступны"
+
+msgid "All clients"
+msgstr "Все клиенты"
+
+msgid "Connection type"
+msgstr "Тип записи"
+
+msgid "DHCP records"
+msgstr "DHCP-записи"
+
+msgid "Shown / total clients"
+msgstr "Показано / всего клиентов"
+
+msgid "Connection unconfirmed"
+msgstr "Подключение не подтверждено"
+
+msgid "Ethernet path"
+msgstr "Через Ethernet"
+
+msgid "Neighbor records"
+msgstr "ARP/NDP-записи"
+
+msgid "Via %s"
+msgstr "Через %s"
+
+msgid "Port ambiguous"
+msgstr "Несколько портов"
+
+msgid "Recently reachable"
+msgstr "Недавно доступен"
+
+msgid "Cached observation"
+msgstr "Запись в кэше"
+
+msgid "Static neighbor"
+msgstr "Статический сосед"
+
+msgid "Neighbor unreachable"
+msgstr "Сосед недоступен"
+
+msgid "Neighbor state"
+msgstr "Состояние ARP/NDP"
+
+msgid "Bridge / VLAN"
+msgstr "Мост / VLAN"
+
+msgid "FDB path; direct cable connection unconfirmed"
+msgstr "Путь по FDB; прямое подключение кабелем не подтверждено"
+
+msgid "Client inventory truncated"
+msgstr "Список клиентов ограничен"
+
+msgid "Port link down"
+msgstr "Линк порта отключён"

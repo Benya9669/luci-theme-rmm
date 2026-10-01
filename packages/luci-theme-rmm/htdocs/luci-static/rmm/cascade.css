@@ -260,6 +260,9 @@ button:disabled, .cbi-button:disabled, .cbi-dropdown[disabled] { opacity: .7; cu
 .rmm-records :is(.td, .th), .rmm-key-values :is(.td, .th) { white-space: normal; overflow-wrap: anywhere; }
 .rmm-records .nowrap { white-space: normal; }
 .rmm-records :is(input, select, .cbi-dropdown), .rmm-key-values :is(input, select, .cbi-dropdown) { min-width: 0; max-width: 100%; }
+.ifacebadge { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.ifacebadge > span { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; max-width: 100%; white-space: normal; }
+.ifacebadge img { position: static; flex: 0 0 auto; margin: 0; width: 24px; height: 24px; object-fit: contain; }
 .rmm-records :is(.ifacebox, .ifacebadge, .zonebadge) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 pre, #syslog, .command-output, .uci-change-list {
 	max-width: 100%;
@@ -426,13 +429,19 @@ pre, #syslog, .command-output, .uci-change-list {
 		border-top: 1px solid var(--rmm-border);
 	}
 	.rmm-global-nav .nav { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 100%; }
-	.rmm-global-nav .nav.rmm-nav-many { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+	.rmm-global-nav .nav.rmm-nav-many { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
+	.rmm-global-nav .nav.rmm-nav-many > li { flex: 1 0 56px; }
 	.rmm-global-nav .nav > li { float: none; min-width: 0; }
+	.rmm-global-nav .rmm-nav-icon { display: block; width: 18px; height: 18px; }
+	.rmm-global-nav .rmm-nav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+	.rmm-global-nav .rmm-nav-icon-link::after { display: none; }
 	.rmm-global-nav .nav > li > a {
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		min-height: 56px;
+		flex-direction: column;
+		gap: 4px;
 		padding: 6px 3px;
 		font-size: 12px;
 		line-height: 1.2;

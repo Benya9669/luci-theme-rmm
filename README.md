@@ -28,7 +28,7 @@ dependency on the RMM agent package; agent status explicitly distinguishes an ab
 
 After installation, open **RMM** at `/cgi-bin/luci/admin/dashboard`.
 The old `/admin/status/rmm-dashboard` route remains an authenticated alias. Select **RMM** under
-**System → Language and Style** to activate the theme. For SSH rollback:
+**System в†’ Language and Style** to activate the theme. For SSH rollback:
 
 ```sh
 uci set luci.main.mediaurlbase='/luci-static/bootstrap'
@@ -53,7 +53,7 @@ or dispatching a feed update. See [the dashboard roadmap](ROADMAP.md).
 
 ## Dashboard history (0.5.0)
 
-Memory use and per-device RX/TX rates have five-minute SVG charts. History
+Memory use and per-device RX/TX rates have SVG charts with selectable 1/5/15-minute windows. History
 exists only while this dashboard view is open, with at most 61 points per
 series. It reuses the 30-second poll, keeps gaps after failed reads, resets
 after reboot and never sums shared device counters. No background daemon,
@@ -113,7 +113,7 @@ log in again so the session receives its new ACL. Verify with an associated
 station: SSID/channel, DHCP identity and signal should match the router's native
 Wireless page. Reads share the existing 30-second poll; each source retains its
 last successful timestamp on failure and recovers independently. Test both
-RMM and Bootstrap at 320–1440 px after installation.
+RMM and Bootstrap at 320вЂ“1440 px after installation.
 
 ## Client filters and details (0.5.0)
 
@@ -123,11 +123,11 @@ Signal ranges are explicit filters, not a quality score. Unknown RSSI has its
 own option. Clear filters restores the complete associated-station list.
 
 Expand Station details with the keyboard or touch for source timestamps,
-radio/SSID, station noise when reported and a five-minute signed RSSI chart.
+radio/SSID, station noise when reported and a signed RSSI chart with the selected time window.
 Open details and filter values survive polling. Unsupported client traffic
 is explicitly unavailable. History is scoped to interface+MAC, bounded to
 61 points per identity and 256 histories; disconnected identities expire after
-five minutes. Errors and disconnects leave gaps; connection-time resets and
+fifteen minutes. Errors and disconnects leave gaps; connection-time resets and
 router reboots reset the history. No router writes or extra permissions.
 
 After installation verify search, combined filters, empty results, clearing,
@@ -208,7 +208,7 @@ router. Negotiated link rate is not measured traffic.
 WAN charts show RX/TX labels and distinct solid/dashed lines. Move the pointer
 over a chart or focus it and use Left/Right/Home/End to inspect recorded
 samples. Missing values are explicit; lines do not bridge unavailable data,
-long polling gaps, counter resets or restarts. History remains bounded to five
+long polling gaps, counter resets or restarts. History remains bounded to fifteen
 minutes in this browser view. Refresh preserves chart focus.
 
 The status summary names disconnected/unknown WAN, memory usage at least 90%,
@@ -234,3 +234,80 @@ follow an SSID client action, close with Escape, sort/group clients, and inspect
 a graph with the keyboard. Confirm controls and selection remain usable after
 the next 30-second poll. View system/network pages to check labels, tabs and
 Save visibility; changing router settings is not required for verification.
+
+
+## Next dashboard and theme changes (unreleased)
+
+The overview removes optional `null` children through a text-safe native LuCI
+DOM boundary. Names, addresses and SSIDs are rendered as text, never HTML.
+Network relationships have a compact layout and a persistent disclosure for
+secondary local interfaces. The theme wraps LAN device badges without image
+collisions and uses a single mobile navigation row with icons and labels.
+
+Use **Customize dashboard / Настроить обзор** to hide and reorder optional
+blocks, select compact density or reset the view. Summary, agent status and
+health stay visible. Preferences use `rmm-dashboard-layout-v1` in localStorage;
+if storage is blocked, a message explains that preferences last for this page.
+No preferences are written to UCI or the router.
+
+History periods are 1, 5 and 15 minutes. The view retains at most 181 samples
+per series (one per five-second bucket) and at most 256 station histories.
+History is collected only while this page is open, cleared on reload/reboot,
+and never persisted to browser storage. Gaps and counter resets are marked;
+changing the visible period does not modify observations or generate RPC calls.
+
+**Clients** combines current/cached Wi-Fi associations and known DHCP leases,
+deduplicated by MAC. DHCP-only rows are explicitly unconfirmed: neither a lease
+nor an IP address proves a wired link or an active connection. Type, band,
+signal, search, sort and SSID grouping compose locally. Device identity and
+DHCP source time are available in details; stale sources remain labelled.
+The passive `rmm.dashboard.clients` RPC reads kernel FDB and ARP/NDP via
+`ucode-mod-rtnl`, once per existing 30-second refresh. It sends no probes and
+changes no network settings. Local-interface observations enrich DHCP identity;
+Wi-Fi associations take priority. The **Ethernet path** filter shows **Via lan…**
+only when the FDB reports an Ethernet bridge member. Multiple ports remain
+ambiguous, and bridge/VLAN tuples are retained in details. WAN/default-route
+uplinks, router MACs, multicast, permanent/self FDB entries and virtual/wireless
+ports do not establish Ethernet ingress.
+
+FDB is cached forwarding evidence, not proof of direct cabling or current
+activity. A downstream switch/AP can expose several MACs on one port. Neighbor
+states distinguish recently reachable, cached, static and failed entries.
+Static-IP clients can appear without a DHCP lease. Old switch hardware or
+unsupported drivers may expose only the CPU-facing device or no port at all.
+Tables are capped at 1024 FDB and 1024 neighbor records; visible known-client
+rows remain capped at 512. Truncation and RPC permission/collection failures
+are explicit; failures retain the last successful observation marked stale.
+
+The package adds only the read ACL `rmm.dashboard: clients` and depends on
+`ucode-mod-rtnl`; existing `luci-base` provides rpcd ucode/fs. Install dependencies
+through the normal feed/package manager when upgrading. After installation,
+verify `ubus call rmm.dashboard clients` over SSH (read-only), then open
+`admin/dashboard`, choose **Ethernet path**, and inspect port, bridge/VLAN and
+source time. Empty tables are valid and do not prove there are no wired devices.
+No UCI configuration is needed. Native ucode tests run in Actions before builds;
+with a host ucode runtime, run `ucode tests/clients.uc` locally.
+
+Health warnings link to relevant details. Menu search accepts Russian aliases
+such as `вайфай`, `дашборд`, `аренды` and `прошивка`, but only searches links
+already present in the ACL-rendered menu. Arrow keys/Home/End navigate primary
+menu links; ArrowDown enters a submenu; Escape restores its trigger.
+
+### Validation
+
+Run `npm ci --ignore-scripts --no-audit --no-fund` and `npm test`. Tests now use
+the actual pinned official LuCI DOM class rather than a permissive E mock.
+The isolated browser fixture also uses pinned native Bootstrap CSS.
+
+In Actions, an obligatory `ui` job installs Chromium and runs
+`npm run test:browser` at 320/390/768/1440 px in RU/EN before SDK package builds.
+It checks overflow, client filtering, preferences across reload, charts, native
+dialogs, focus restoration, keyboard menu/search, form labels, LAN badge
+collisions and unavailable data. Screenshots are uploaded as
+`luci-ui-screenshots`, including when a check fails. Unit checks cover text/focus
+contrast, partial/stale states, invalid preferences and unsafe telemetry text.
+All fixture snapshots are synthetic; CI never contacts a production router.
+
+After release and installation, repeat these checks on the actual LuCI pages;
+fixtures do not replace a package installation smoke test. Package building
+remains in GitHub Actions. See [LuCI 0.8.0 release notes](docs/release-0.8.0.md) for upgrade steps and limits.

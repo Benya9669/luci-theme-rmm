@@ -1,6 +1,12 @@
 {
   "name": "luci-rmm-tests",
   "private": true,
-  "scripts": { "test": "node --test tests/*.test.cjs" },
-  "devDependencies": { "linkedom": "0.18.12" }
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "test:browser": "node tests/browser-smoke.cjs"
+  },
+  "devDependencies": {
+    "linkedom": "0.18.12",
+    "playwright": "1.63.0"
+  }
 }
