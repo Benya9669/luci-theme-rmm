@@ -311,3 +311,8 @@ All fixture snapshots are synthetic; CI never contacts a production router.
 After release and installation, repeat these checks on the actual LuCI pages;
 fixtures do not replace a package installation smoke test. Package building
 remains in GitHub Actions. See [LuCI 0.8.0 release notes](docs/release-0.8.0.md) for upgrade steps and limits.
+
+## LuCI 0.9.0
+
+Compact network relationships with measured responsive connectors and a native RTNL
+constant namespace fix for passive client discovery. See [release notes](docs/release-0.9.0.md).

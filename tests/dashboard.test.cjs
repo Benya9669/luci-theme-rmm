@@ -48,7 +48,7 @@ test('system, network and agent show real metrics, timestamps and 30-second poll
   assert.match(root.textContent,/75.0 MiB \(75.0%\)/);
   assert.match(root.textContent,/192.0.2.1/);
   assert.match(root.textContent,/600 с/);
-  assert.equal(root.querySelectorAll('time').length,11);
+  assert.equal(root.querySelectorAll('time').length,13);
   assert.equal(f.polls[0].seconds,30);
   assert.match(root.textContent,/Накопление данных/);
 });
@@ -531,4 +531,35 @@ test('passive inventory RPC deduplicates refresh, reports errors and has read-on
 
 test('FDB VLAN observations only match the explicit local VLAN and exclude routed uplinks',()=>{
  const f=fixture(),data=lanSnapshot({fdb:[{mac:'02:00:00:00:00:09',bridge:'br-lan',port:'lan2',vlan:10,link_up:null},{mac:'02:00:00:00:00:10',bridge:'br-lan',port:'lan3',vlan:20,link_up:true}]});data[2].value.interface=[{interface:'office',l3_device:'br-lan.10',up:true},{interface:'uplink',l3_device:'br-lan.20',route:[{target:'::',mask:0}]}];f.view.render(data);assert.equal(f.view.clientRecords.length,1);assert.equal(f.view.knownNodes['dhcp/02:00:00:00:00:09'].signal.textContent,'Запись в кэше');
+});
+
+test('compact Ethernet summary uses validated local FDB paths and deduplicates MACs per port',()=>{
+ const f=fixture(),data=wirelessSnapshot();
+ data[2].value.interface.push({interface:'lan',l3_device:'br-lan',up:true});
+ data[8]={at:100000,value:{fdb:[{mac:'02:00:00:00:00:20',bridge:'br-lan',port:'lan3'},{mac:'02:00:00:00:00:20',bridge:'br-lan',port:'lan3',vlan:10},{mac:'02:00:00:00:00:21',bridge:'eth0',port:'wan'},{mac:'invalid',bridge:'br-lan',port:'lan4'}],neighbors:[]}};
+ const root=f.view.render(data),card=f.view.relationshipNodes.ethernet;
+ assert.match(card.summary.textContent,/lan3 · 1 MAC/);
+ assert.doesNotMatch(card.summary.textContent,/wan|lan4/);
+ assert.match(card.body.textContent,/прямое подключение кабелем не подтверждено/);
+ assert.equal(f.view.relationshipPath.querySelectorAll('.rmm-dashboard-path-branch').length,2);
+ card.root.setAttribute('open','');f.time(130000);f.view.update(root,data.map(entry=>({...entry,at:130000})));
+ assert.equal(f.view.relationshipNodes.ethernet,card);assert.ok(card.root.hasAttribute('open'));
+ assert.equal(f.calls.length,0);
+});
+
+test('connector bus uses visible card bounds and integer edge anchors, excluding nested details',()=>{
+ const f=fixture();f.view.render(wirelessSnapshot());
+ const path=f.view.relationshipPath;f.document.body.appendChild(path);
+ const bounds=(left,top,width,height)=>({left,top,right:left+width,bottom:top+height,width,height});
+ path.getBoundingClientRect=()=>bounds(0,0,1000,140);Object.defineProperty(path,'clientWidth',{value:1000});
+ const router=path.querySelector('.rmm-dashboard-path-device'),branches=[...path.querySelectorAll('.rmm-dashboard-path-branch')],gateways=[...path.querySelectorAll('.rmm-dashboard-path-uplink summary')];
+ router.getBoundingClientRect=()=>bounds(240,0,200,100);router.querySelector('summary').getBoundingClientRect=()=>bounds(240,0,200,100);
+ gateways.forEach(card=>{card.getBoundingClientRect=()=>bounds(0,0,200,100);card.parentElement.getBoundingClientRect=()=>bounds(0,0,200,100);});
+ branches.forEach((branch,i)=>{branch.getBoundingClientRect=()=>bounds(480+i*240,0,200,100);branch.querySelector('summary').getBoundingClientRect=()=>bounds(480+i*240,0,200,100);});
+ f.view.drawRelationshipLines();
+ assert.equal(path.getAttribute('data-layout'),'desktop');
+ const lines=[...path.querySelectorAll('polyline')].map(el=>el.getAttribute('points'));
+ assert.ok(lines.includes('340,100 340,116 820,116'));
+ assert.ok(lines.includes('580,100 580,116'));
+ assert.ok(lines.includes('200,50 220,50 220,50 240,50'));
 });

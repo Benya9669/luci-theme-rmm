@@ -526,3 +526,9 @@ msgstr "Список клиентов ограничен"
 
 msgid "Port link down"
 msgstr "Линк порта отключён"
+
+msgid "No FDB observations"
+msgstr "Наблюдений FDB нет"
+
+msgid "FDB observations"
+msgstr "По данным FDB"

@@ -532,3 +532,9 @@ msgstr "客户端列表已截断"
 
 msgid "Port link down"
 msgstr "端口链路已断开"
+
+msgid "No FDB observations"
+msgstr "没有 FDB 观测记录"
+
+msgid "FDB observations"
+msgstr "FDB 观测记录"

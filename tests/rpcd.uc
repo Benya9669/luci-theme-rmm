@@ -1,3 +1,6 @@
+import * as rtnl from 'rtnl';
+if (type(rtnl.const?.RTM_GETLINK) != 'int' || rtnl.RTM_GETLINK != null)
+    die('RTNL fixture must preserve the native const namespace');
 let plugin = loadfile('packages/luci-app-rmm-dashboard/root/usr/share/rpcd/ucode/rmm-dashboard')();
 let methods = plugin['rmm.dashboard'];
 if (length(methods) != 1 || !methods.clients || methods.clients.args) die('Unexpected RPC surface');
