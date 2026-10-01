@@ -18,6 +18,22 @@ var callLeases = rpc.declare({ object: 'luci-rpc', method: 'getDHCPLeases', expe
 var callConfig = rpc.declare({ object: 'uci', method: 'get', params: [ 'config', 'section' ], expect: { values: {} } });
 
 var russian = {
+	"Search clients": "Поиск клиентов",
+	"All bands": "Все диапазоны",
+	"All signals": "Любой сигнал",
+	"Signal ≥ -67 dBm": "Сигнал ≥ -67 dBm",
+	"Signal -68…-75 dBm": "Сигнал -68…-75 dBm",
+	"Signal < -75 dBm": "Сигнал < -75 dBm",
+	"Unknown signal": "Сигнал неизвестен",
+	"Clear filters": "Сбросить фильтры",
+	"No matching stations": "Нет станций по выбранным фильтрам",
+	"Station details": "Детали станции",
+	"Signal history": "История сигнала",
+	"Station traffic": "Трафик станции",
+	"Station noise": "Шум станции",
+	"Shown / total stations": "Показано / всего станций",
+	"Search by name, MAC, IP or SSID": "Поиск по имени, MAC, IP или SSID",
+	"Signal bands are filters, not a connection quality score.": "Диапазоны сигнала служат фильтром, а не оценкой качества соединения.",
 	"Wireless": "Беспроводная сеть",
 	"Associated stations": "Подключённые станции",
 	"Radio": "Радиомодуль",
@@ -204,10 +220,14 @@ function wifiLoad() {
 	});
 }
 function cachedResult(result, previous) { return result.error ? {value:previous && previous.value,at:previous && previous.at,error:result.error} : result; }
-function signalText(value) {
-	if (typeof value !== 'number' || !Number.isInteger(value)) return tr('Unavailable');
+function signalValue(value) {
+	if (typeof value !== 'number' || !Number.isInteger(value)) return null;
 	if (value > 2147483647 && value <= 4294967295) value -= 4294967296;
-	return value < 0 && value >= -127 ? value + ' dBm' : tr('Unavailable');
+	return value < 0 && value >= -127 ? value : null;
+}
+function signalText(value) {
+	var signal = signalValue(value);
+	return signal === null ? tr('Unavailable') : signal + ' dBm';
 }
 function bandName(info) {
 	var frequency = info.frequency;
@@ -259,6 +279,8 @@ return view.extend({
 		this.sources = [];
 		this.history = { memory: [], devices: Object.create(null) };
 		this.slots = {};
+		this.stationHistory = Object.create(null);
+		this.stationNodes = Object.create(null);
 		this.status = E('span', { 'class': 'rmm-dashboard-refresh', role: 'status', 'aria-live': 'polite' }, tr('Loading'));
 		this.retry = E('button', { 'class': 'btn', type: 'button', click: L.bind(function() { return this.refresh(); }, this) }, tr('Retry'));
 		var root = E('div', { 'class': 'rmm-dashboard' });
@@ -275,6 +297,23 @@ return view.extend({
 		root.appendChild(E('div', { 'class': 'rmm-dashboard-grid' }, sections));
 		root.appendChild(E('p', { 'class': 'rmm-dashboard-note' }, tr('WAN status shows the interface link state; it does not test Internet reachability.')));
 		root.appendChild(E('p', { 'class': 'rmm-dashboard-note' }, tr('Traffic counters belong to devices; shared devices are not summed.')));
+		var filterChange = L.bind(this.filterStations, this);
+		function field(id, label, control) { return E('label', {for:id}, [E('span',{},tr(label)),control]); }
+		function select(id, options) { return E('select',{id:id,change:filterChange}, options.map(function(option) { return E('option',{value:option[0]},tr(option[1])); })); }
+		this.clientSearch = E('input',{id:'rmm-client-search',type:'search',maxlength:128,input:filterChange,placeholder:tr('Search by name, MAC, IP or SSID')});
+		this.clientBand = select('rmm-client-band',[['all','All bands'],['2.4 GHz','2.4 GHz'],['5 GHz','5 GHz'],['6 GHz','6 GHz'],['60 GHz','60 GHz']]);
+		this.clientSignal = select('rmm-client-signal',[['all','All signals'],['strong','Signal ≥ -67 dBm'],['medium','Signal -68…-75 dBm'],['weak','Signal < -75 dBm'],['unknown','Unknown signal']]);
+		this.clientCount = E('p',{'class':'rmm-dashboard-source',role:'status','aria-live':'polite'});
+		this.clientEmpty = E('p',{'class':'rmm-dashboard-source',hidden:''},tr('No matching stations'));
+		this.wirelessContent = E('div',{});
+		this.slots.wireless.appendChild(E('div',{'class':'rmm-dashboard-filters'},[
+			field('rmm-client-search','Search clients',this.clientSearch),field('rmm-client-band','Band',this.clientBand),field('rmm-client-signal','Signal',this.clientSignal),
+			E('button',{type:'button','class':'btn',click:L.bind(function() { this.clientSearch.value='';this.clientBand.value='all';this.clientSignal.value='all';this.filterStations(); },this)},tr('Clear filters'))
+		]));
+		this.slots.wireless.appendChild(this.clientCount);
+		this.slots.wireless.appendChild(this.clientEmpty);
+		this.slots.wireless.appendChild(E('p',{'class':'rmm-dashboard-source'},tr('Signal bands are filters, not a connection quality score.')));
+		this.slots.wireless.appendChild(this.wirelessContent);
 		this.update(root, data);
 		this.root = root;
 		poll.add(L.bind(this.refresh, this), 30);
@@ -329,7 +368,7 @@ return view.extend({
 		var used = finite(memory.total) && memory.total > 0 && finite(memory.available) && memory.available <= memory.total ? memory.total - memory.available : null;
 		var rebooted = previousInfo && finite(previousInfo.value && previousInfo.value.uptime) && finite(info.uptime) && info.uptime < previousInfo.value.uptime;
 		var now = Date.now();
-		if (rebooted) this.history = { memory: [], devices: Object.create(null) };
+		if (rebooted) { this.history = { memory: [], devices: Object.create(null) }; this.stationHistory = Object.create(null); }
 		var history = this.history;
 		history.memory = remember(history.memory, { at: now, used: sourceFresh(sources[1], now) && used !== null ? used / memory.total * 100 : null }, now);
 		var load = Array.isArray(info.load) && info.load.every(finite) ? info.load.map(function(v) { return (v / 65536).toFixed(2); }).join(' / ') : tr('Unavailable');
@@ -371,6 +410,10 @@ return view.extend({
 		var wirelessRows = [sourceLine('iwinfo.devices',6),sourceLine('luci-rpc.getDHCPLeases',7),E('p',{'class':'rmm-dashboard-source'},tr('Wireless interfaces visible to iwinfo are shown; disabled radios are not inventoried.'))];
 		var wireless = sources[6].value && sources[6].value.interfaces || [];
 		var hosts = leaseMap(sources[7].value || {});
+		var seenStations = Object.create(null);
+		var focused = document.activeElement;
+		this.clientRecords = [];
+		var self = this;
 		wireless.forEach(function(entry) {
 			var info = entry.info.value || {}, stations = stationList(entry.stations.value);
 			wirelessRows.push(E('h3',{},entry.device),resultLine('iwinfo.info',entry.info,sources[6].error),E('dl',{},[
@@ -381,17 +424,46 @@ return view.extend({
 			]),resultLine('iwinfo.assoclist',entry.stations,sources[6].error));
 			if (entry.stations.value && entry.stations.value.results.length !== stations.length) wirelessRows.push(E('p',{'class':'rmm-dashboard-source rmm-dashboard-warning'},tr('Invalid station records') + ': ' + (entry.stations.value.results.length - stations.length)));
 			stations.forEach(function(station) {
-				var mac = station.mac.toUpperCase(), host = hosts[mac] || {};
-				wirelessRows.push(E('div',{'class':'rmm-dashboard-station'},[E('h4',{},host.name || mac),E('dl',{},[
-					item(tr('MAC address'),mac),item(tr('IP address'),host.addresses && host.addresses.length ? host.addresses.join(' / ') : tr('No local DHCP record')),
-					item(tr('Signal'),signalText(station.signal)),item(tr('Link rate RX / TX'),linkRate(station.rx) + ' / ' + linkRate(station.tx)),item(tr('Connected time'),formatDuration(station.connected_time))
-				])]));
+				var mac = station.mac.toUpperCase(), host = hosts[mac] || {}, key = entry.device + '/' + mac;
+				seenStations[key] = true;
+				var previous = self.stationHistory[key], fresh = sourceFresh(sources[6],now) && sourceFresh(entry.stations,now);
+				if (previous && fresh && finite(station.connected_time) && finite(previous.connected) && station.connected_time < previous.connected) previous = null;
+				var points = remember(previous && previous.points || [], {at:now,signal:fresh ? signalValue(station.signal) : null},now);
+				self.stationHistory[key] = {points:points,connected:fresh ? station.connected_time : previous && previous.connected,lastSeen:now};
+				var nodes = self.stationNodes[key];
+				if (!nodes) {
+					nodes = {root:E('div',{'class':'rmm-dashboard-station'}),title:E('h4',{}),metrics:E('dl',{}),summary:E('summary',{},tr('Station details')),body:E('div',{})};
+					nodes.details = E('details',{'class':'rmm-dashboard-station-details'},[nodes.summary,nodes.body]);
+					nodes.root.appendChild(nodes.title);nodes.root.appendChild(nodes.metrics);nodes.root.appendChild(nodes.details);
+					self.stationNodes[key] = nodes;
+				}
+				nodes.title.textContent = host.name || mac;
+				nodes.metrics.replaceChildren.apply(nodes.metrics,[item(tr('MAC address'),mac),item(tr('IP address'),host.addresses && host.addresses.length ? host.addresses.join(' / ') : tr('No local DHCP record')),
+					item(tr('Signal'),signalText(station.signal)),item(tr('Link rate RX / TX'),linkRate(station.rx) + ' / ' + linkRate(station.tx)),item(tr('Connected time'),formatDuration(station.connected_time))]);
+				nodes.body.replaceChildren(resultLine('iwinfo.assoclist',entry.stations,sources[6].error),resultLine('luci-rpc.getDHCPLeases',sources[7]),E('dl',{},[
+					item(tr('Interface'),entry.device),item(tr('Radio'),reportedText(info.phy)),item('SSID',reportedText(info.ssid)),item(tr('Band'),bandName(info)),
+					item(tr('Station noise'),signalText(station.noise)),item(tr('Station traffic'),tr('Unavailable'))
+				]),historyChart(tr('Signal history'),points.map(function(point) { return {at:point.at,used:point.signal === null ? null : point.signal + 127}; }),[{key:'used',label:tr('Signal')}],127,function(value) { return (value - 127).toFixed(0) + ' dBm'; },now));
+				self.clientRecords.push({node:nodes.root,band:bandName(info),signal:signalValue(station.signal),search:[host.name,mac,entry.device,info.ssid].concat(host.addresses || []).filter(function(value) { return typeof value === 'string'; }).join(' ').toLowerCase()});
+				wirelessRows.push(nodes.root);
 			});
 			if (entry.stations.value && !entry.stations.value.results.length) wirelessRows.push(E('p',{'class':'rmm-dashboard-source'},tr('No associated stations')));
 		});
 		if (!wireless.length) wirelessRows.push(E('p',{'class':'rmm-dashboard-source'},sources[6].error ? failure(sources[6].error) : tr('No wireless interfaces reported')));
 		wirelessRows.push(E('p',{'class':'rmm-dashboard-source'},tr('Link rates are negotiated Wi-Fi rates, not measured traffic.')));
-		this.slots.wireless.replaceChildren.apply(this.slots.wireless,wirelessRows);
+		Object.keys(this.stationHistory).forEach(function(key) {
+			if (!seenStations[key]) {
+				var history = self.stationHistory[key];
+				history.points = remember(history.points,{at:now,signal:null},now);
+				if (now - history.lastSeen > historyWindow) delete self.stationHistory[key];
+				delete self.stationNodes[key];
+			}
+		});
+		// Bound identities as well as points on networks with high station churn.
+		Object.keys(this.stationHistory).sort(function(a,b) { return self.stationHistory[b].lastSeen - self.stationHistory[a].lastSeen; }).slice(256).forEach(function(key) { delete self.stationHistory[key]; });
+		this.wirelessContent.replaceChildren.apply(this.wirelessContent,wirelessRows);
+		if (focused && focused.isConnected && this.wirelessContent.contains(focused) && typeof focused.focus === 'function') focused.focus();
+		this.filterStations();
 		var agentStatus = !sources[3].value ? failure(sources[3].error) : !agent ? tr('Not installed') : running ? tr('Running') : !sources[4].value ? failure(sources[4].error) : config.enabled === '1' ? tr('Stopped') : tr('Disabled');
 		this.slots.agent.replaceChildren(sourceLine('service.list', 3), sourceLine('uci rmm-agent', 4), E('dl', {}, [
 			item(tr('Status'), agentStatus, running ? 'ok' : agent ? 'warning' : ''),
@@ -405,6 +477,19 @@ return view.extend({
 		// Announce only state transitions, not every successful telemetry poll.
 		var statusText = tr(stateCode);
 		if (this.status.textContent !== statusText) this.status.textContent = statusText;
+	},
+
+	filterStations: function() {
+		var query = (this.clientSearch.value || '').trim().toLowerCase(), band = this.clientBand.value || 'all', signal = this.clientSignal.value || 'all';
+		var shown = 0, records = this.clientRecords || [];
+		records.forEach(function(record) {
+			var matchesSignal = signal === 'all' || signal === 'unknown' && record.signal === null || record.signal !== null && (signal === 'strong' && record.signal >= -67 || signal === 'medium' && record.signal < -67 && record.signal >= -75 || signal === 'weak' && record.signal < -75);
+			var visible = (!query || record.search.includes(query)) && (band === 'all' || record.band === band) && matchesSignal;
+			record.node.hidden = !visible;if (visible) shown++;
+		});
+		var count = tr('Shown / total stations') + ': ' + shown + ' / ' + records.length;
+		if (this.clientCount.textContent !== count) this.clientCount.textContent = count;
+		this.clientEmpty.hidden = shown > 0 || records.length === 0;
 	},
 
 	handleSaveApply: null,

@@ -238,3 +238,51 @@ msgstr "Скорость Wi-Fi-соединения не равна фактич
 
 msgid "Invalid station records"
 msgstr "Некорректные записи станций"
+
+msgid "Search clients"
+msgstr "Поиск клиентов"
+
+msgid "All bands"
+msgstr "Все диапазоны"
+
+msgid "All signals"
+msgstr "Любой сигнал"
+
+msgid "Signal ≥ -67 dBm"
+msgstr "Сигнал ≥ -67 dBm"
+
+msgid "Signal -68…-75 dBm"
+msgstr "Сигнал -68…-75 dBm"
+
+msgid "Signal < -75 dBm"
+msgstr "Сигнал < -75 dBm"
+
+msgid "Unknown signal"
+msgstr "Сигнал неизвестен"
+
+msgid "Clear filters"
+msgstr "Сбросить фильтры"
+
+msgid "No matching stations"
+msgstr "Нет станций по выбранным фильтрам"
+
+msgid "Station details"
+msgstr "Детали станции"
+
+msgid "Signal history"
+msgstr "История сигнала"
+
+msgid "Station traffic"
+msgstr "Трафик станции"
+
+msgid "Station noise"
+msgstr "Шум станции"
+
+msgid "Shown / total stations"
+msgstr "Показано / всего станций"
+
+msgid "Search by name, MAC, IP or SSID"
+msgstr "Поиск по имени, MAC, IP или SSID"
+
+msgid "Signal bands are filters, not a connection quality score."
+msgstr "Диапазоны сигнала служат фильтром, а не оценкой качества соединения."

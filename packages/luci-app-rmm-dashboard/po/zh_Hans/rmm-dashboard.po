@@ -244,3 +244,51 @@ msgstr "连接速率为协商的 Wi-Fi 速率，并非实际流量。"
 
 msgid "Invalid station records"
 msgstr "无效站点记录"
+
+msgid "Search clients"
+msgstr "搜索客户端"
+
+msgid "All bands"
+msgstr "所有频段"
+
+msgid "All signals"
+msgstr "所有信号"
+
+msgid "Signal ≥ -67 dBm"
+msgstr "信号 ≥ -67 dBm"
+
+msgid "Signal -68…-75 dBm"
+msgstr "信号 -68…-75 dBm"
+
+msgid "Signal < -75 dBm"
+msgstr "信号 < -75 dBm"
+
+msgid "Unknown signal"
+msgstr "信号未知"
+
+msgid "Clear filters"
+msgstr "清除筛选"
+
+msgid "No matching stations"
+msgstr "没有匹配的站点"
+
+msgid "Station details"
+msgstr "站点详情"
+
+msgid "Signal history"
+msgstr "信号历史"
+
+msgid "Station traffic"
+msgstr "站点流量"
+
+msgid "Station noise"
+msgstr "站点噪声"
+
+msgid "Shown / total stations"
+msgstr "显示 / 总站点数"
+
+msgid "Search by name, MAC, IP or SSID"
+msgstr "按名称、MAC、IP 或 SSID 搜索"
+
+msgid "Signal bands are filters, not a connection quality score."
+msgstr "信号范围仅用于筛选，不是连接质量评分。"

@@ -229,3 +229,46 @@ test('Wi-Fi ACL permits only the required read methods and local DHCP leases',()
  assert.deepEqual(entry.read.ubus.iwinfo,['devices','info','assoclist']);assert.deepEqual(entry.read.ubus['luci-rpc'],['getDHCPLeases']);
  assert.deepEqual(entry.read.uci,['rmm-agent']);
 });
+
+
+test('client search and signal filters compose locally and survive telemetry updates',()=>{
+ const f=fixture(),root=f.view.render(wirelessSnapshot());
+ const search=f.view.clientSearch,band=f.view.clientBand,signal=f.view.clientSignal;
+ search.value='2001:DB8::20';f.view.filterStations();assert.equal(f.view.clientRecords[0].node.hidden,false);
+ search.value='missing';f.view.filterStations();assert.equal(f.view.clientRecords[0].node.hidden,true);assert.equal(f.view.clientEmpty.hidden,false);
+ search.value='';signal.querySelector('option[value="weak"]').selected=true;f.view.filterStations();assert.equal(f.view.clientRecords[0].node.hidden,true);
+ signal.querySelector('option[value="all"]').selected=true;band.querySelector('option[value="2.4 GHz"]').selected=true;f.view.filterStations();assert.equal(f.view.clientRecords[0].node.hidden,true);
+ f.time(130000);f.view.update(root,wirelessSnapshot(130000));
+ assert.equal(f.view.clientSearch,search);assert.equal(f.view.clientBand,band);assert.equal(f.view.clientRecords[0].node.hidden,true);
+ assert.equal(f.calls.length,0);assert.equal(f.polls.length,1);
+});
+test('native station details remain open across polling and expose unsupported telemetry explicitly',()=>{
+ const f=fixture(),root=f.view.render(wirelessSnapshot());
+ const details=root.querySelector('.rmm-dashboard-station-details');details.setAttribute('open','');
+ f.time(130000);f.view.update(root,wirelessSnapshot(130000));
+ assert.equal(root.querySelector('.rmm-dashboard-station-details'),details);assert.ok(details.hasAttribute('open'));
+ assert.match(details.textContent,/Трафик станцииНедоступно/);assert.match(details.textContent,/Шум станцииНедоступно/);
+ assert.match(details.textContent,/phy0-ap0/);assert.match(details.textContent,/Test <SSID>/);
+ assert.match(details.querySelector('svg').getAttribute('aria-label'),/-50 dBm/);
+});
+test('signal history stores signed RSSI with gaps for errors, disconnects and resets on reconnect or reboot',()=>{
+ const f=fixture(),root=f.view.render(wirelessSnapshot()),key='phy0-ap0/02:00:00:00:00:01';
+ f.time(130000);f.view.update(root,wirelessSnapshot(130000,undefined,{code:6}));
+ assert.equal(f.view.stationHistory[key].points.at(-1).signal,null);
+ f.time(160000);f.view.update(root,wirelessSnapshot(160000));
+ assert.equal(f.view.stationHistory[key].points.at(-1).signal,-50);
+ f.time(190000);f.view.update(root,snapshot(190000));assert.equal(f.view.stationHistory[key].points.at(-1).signal,null);
+ f.time(220000);const reconnect=wirelessSnapshot(220000);reconnect[6].value.interfaces[0].stations.value.results[0].connected_time=10;f.view.update(root,reconnect);
+ assert.equal(f.view.stationHistory[key].points.length,1);
+ f.time(250000);const reboot=wirelessSnapshot(250000);reboot[1].value.uptime=1;f.view.update(root,reboot);
+ assert.equal(f.view.stationHistory[key].points.length,1);
+});
+test('unknown RSSI is filterable and retained identities expire after five minutes',()=>{
+ const f=fixture(),data=wirelessSnapshot();data[6].value.interfaces[0].stations.value.results[0].signal=0;
+ const root=f.view.render(data),key='phy0-ap0/02:00:00:00:00:01';
+ f.view.clientSignal.querySelector('option[value="unknown"]').selected=true;f.view.filterStations();
+ assert.equal(f.view.clientRecords[0].node.hidden,false);assert.equal(f.view.stationHistory[key].points[0].signal,null);
+ for(let at=101000;at<=180000;at+=1000){f.time(at);f.view.update(root,wirelessSnapshot(at));}
+ assert.ok(f.view.stationHistory[key].points.length<=61);
+ f.time(510000);f.view.update(root,snapshot(510000));assert.equal(f.view.stationHistory[key],undefined);assert.equal(Object.keys(f.view.stationNodes).length,0);
+});

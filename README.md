@@ -114,3 +114,22 @@ station: SSID/channel, DHCP identity and signal should match the router's native
 Wireless page. Reads share the existing 30-second poll; each source retains its
 last successful timestamp on failure and recovers independently. Test both
 RMM and Bootstrap at 320–1440 px after installation.
+
+## Client filters and details (prepared for 0.5.0)
+
+Search station names, MAC/IP, interface or SSID and combine with band/RSSI
+filters. These controls use the current snapshot and make no extra RPC calls.
+Signal ranges are explicit filters, not a quality score. Unknown RSSI has its
+own option. Clear filters restores the complete associated-station list.
+
+Expand Station details with the keyboard or touch for source timestamps,
+radio/SSID, station noise when reported and a five-minute signed RSSI chart.
+Open details and filter values survive polling. Unsupported client traffic
+is explicitly unavailable. History is scoped to interface+MAC, bounded to
+61 points per identity and 256 histories; disconnected identities expire after
+five minutes. Errors and disconnects leave gaps; connection-time resets and
+router reboots reset the history. No router writes or extra permissions.
+
+After installation verify search, combined filters, empty results, clearing,
+keyboard disclosure and preservation across polling at 320/390/768/1440 px
+in both RMM and Bootstrap. Device and responsive verification remain pending.
