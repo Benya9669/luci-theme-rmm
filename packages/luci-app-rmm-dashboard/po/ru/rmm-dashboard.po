@@ -169,3 +169,18 @@ msgstr "%s MiB"
 
 msgid "%s s"
 msgstr "%s с"
+
+msgid "Traffic history"
+msgstr "История трафика"
+
+msgid "Memory history"
+msgstr "История памяти"
+
+msgid "Last 5 minutes"
+msgstr "Последние 5 минут"
+
+msgid "Peak"
+msgstr "Максимум"
+
+msgid "History starts when this page opens. Gaps indicate unavailable data."
+msgstr "История начинается при открытии страницы. Разрывы означают отсутствие данных."

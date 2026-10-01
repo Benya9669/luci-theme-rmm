@@ -51,6 +51,14 @@ builds publish both translation packages alongside the theme and dashboard. Test
 on `main` and PRs upload artifacts without publishing a release
 or dispatching a feed update. See [the dashboard roadmap](ROADMAP.md).
 
+## Dashboard history (prepared for 0.5.0)
+
+Memory use and per-device RX/TX rates have five-minute SVG charts. History
+exists only while this dashboard view is open, with at most 61 points per
+series. It reuses the 30-second poll, keeps gaps after failed reads, resets
+after reboot and never sums shared device counters. No background daemon,
+router files, additional Internet probes or new ACL permissions are added.
+
 ## Current release
 
 Version **0.4.0** adds P2 interface-table corrections and the P3 dashboard with source states, timestamps, memory and traffic.

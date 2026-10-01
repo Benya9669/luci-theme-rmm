@@ -13,6 +13,9 @@ var callDevices = rpc.declare({ object: 'network.device', method: 'status', expe
 var callConfig = rpc.declare({ object: 'uci', method: 'get', params: [ 'config', 'section' ], expect: { values: {} } });
 
 var russian = {
+	'Traffic history': 'История трафика', 'Memory history': 'История памяти',
+	'Last 5 minutes': 'Последние 5 минут', 'Peak': 'Максимум',
+	'History starts when this page opens. Gaps indicate unavailable data.': 'История начинается при открытии страницы. Разрывы означают отсутствие данных.',
 	'Partial data': 'Часть данных недоступна', 'Loading': 'Загрузка', 'Current': 'Актуально', 'Stale': 'Устаревшие данные',
 	'Access denied': 'Нет доступа', 'Last successful update': 'Последнее успешное обновление',
 	'Never updated': 'Ещё не обновлялось', 'Retry': 'Повторить', 'Refreshing': 'Обновление',
@@ -99,6 +102,59 @@ function formatTraffic(bytes) {
 	return bytes.toFixed(index ? 1 : 0) + ' ' + units[index];
 }
 
+// Five minutes in this view instance only; no router storage or extra timer.
+var historyWindow = 300000;
+var historyLimit = 61;
+function remember(samples, sample, now) {
+	var recent = samples.filter(function(point) { return point.at >= now - historyWindow && point.at <= now; });
+	var previous = recent[recent.length - 1];
+	if (previous && sample.at < previous.at) return recent;
+	// Manual Retry may be frequent: retain the latest sample per five-second bucket.
+	if (previous && Math.floor(sample.at / 5000) === Math.floor(previous.at / 5000)) recent[recent.length - 1] = sample;
+	else recent.push(sample);
+	return recent.slice(-historyLimit);
+}
+function sourceFresh(source, now) { return !source.error && finite(source.at) && source.at <= now && now - source.at <= 65000; }
+function byteRate(current, previous, elapsed) {
+	return finite(current) && finite(previous) && current >= previous && elapsed > 0 && elapsed <= 65 ? (current - previous) / elapsed : null;
+}
+function svgElement(tag, attributes, children) {
+	var node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+	Object.keys(attributes || {}).forEach(function(key) { node.setAttribute(key, attributes[key]); });
+	(children || []).forEach(function(child) { node.appendChild(child); });
+	return node;
+}
+function historyChart(title, samples, series, fixedMax, format, now) {
+	var latest = samples[samples.length - 1];
+	var peak = Math.max.apply(null, [0].concat(samples.flatMap(function(point) { return series.map(function(entry) { return finite(point[entry.key]) ? point[entry.key] : 0; }); })));
+	var max = fixedMax || Math.max(1, peak);
+	var hasValues = samples.some(function(point) { return series.some(function(entry) { return finite(point[entry.key]); }); });
+	var summary = series.map(function(entry) { return entry.label + ': ' + (latest && finite(latest[entry.key]) ? format(latest[entry.key]) : tr('Unavailable')); }).join(' · ');
+	var figure = E('figure', { 'class': 'rmm-dashboard-chart' }, [
+		E('figcaption', {}, [E('span', { 'class': 'rmm-dashboard-chart-title' }, title), E('span', {}, tr('Last 5 minutes'))]),
+		E('p', { 'class': 'rmm-dashboard-chart-summary' }, summary)
+	]);
+	var svg = svgElement('svg', { viewBox: '0 0 600 140', role: 'img', 'aria-label': title + ' · ' + summary + ' · ' + tr('Peak') + ': ' + (hasValues ? format(peak) : tr('Unavailable')) });
+	[12, 64, 116].forEach(function(y) { svg.appendChild(svgElement('line', { x1: '8', x2: '592', y1: y, y2: y, 'class': 'rmm-dashboard-chart-grid' })); });
+	series.forEach(function(entry) {
+		var commands = [], previous = null;
+		samples.forEach(function(point) {
+			if (!finite(point[entry.key])) { previous = null; return; }
+			var x = 8 + Math.max(0, Math.min(1, (point.at - (now - historyWindow)) / historyWindow)) * 584;
+			var y = 116 - Math.min(1, point[entry.key] / max) * 104;
+			commands.push((previous && point.at - previous.at <= 65000 ? 'L' : 'M') + x.toFixed(2) + ',' + y.toFixed(2));
+			previous = point;
+		});
+		if (commands.length) svg.appendChild(svgElement('path', { d: commands.join(' '), 'class': 'rmm-dashboard-chart-line rmm-dashboard-chart-' + entry.key, fill: 'none', 'vector-effect': 'non-scaling-stroke' }));
+	});
+	figure.appendChild(svg);
+	figure.appendChild(E('p', { 'class': 'rmm-dashboard-chart-scale' }, [E('span', {}, format(0)), E('span', {}, format(max))]));
+	figure.appendChild(E('p', { 'class': 'rmm-dashboard-chart-times' }, [E('span', {}, clock(now - historyWindow)), E('span', {}, clock(now))]));
+	if (samples.filter(function(point) { return series.some(function(entry) { return finite(point[entry.key]); }); }).length < 2)
+		figure.appendChild(E('p', { 'class': 'rmm-dashboard-note' }, tr('Collecting')));
+	return figure;
+}
+
 function item(label, value, state) {
 	return E('div', { 'class': 'rmm-dashboard-row' }, [
 		E('dt', {}, label),
@@ -136,6 +192,7 @@ return view.extend({
 		if (!document.getElementById('rmm-dashboard-styles'))
 			document.head.appendChild(E('link', { id: 'rmm-dashboard-styles', rel: 'stylesheet', href: L.resource('view/status/rmm-dashboard.css') + '?v=0.5.0' }));
 		this.sources = [];
+		this.history = { memory: [], devices: Object.create(null) };
 		this.slots = {};
 		this.status = E('span', { 'class': 'rmm-dashboard-refresh', role: 'status', 'aria-live': 'polite' }, tr('Loading'));
 		this.retry = E('button', { 'class': 'btn', type: 'button', click: L.bind(function() { return this.refresh(); }, this) }, tr('Retry'));
@@ -149,6 +206,7 @@ return view.extend({
 			E('div', { 'class': 'rmm-dashboard-toolbar' }, [ this.status, this.retry ])
 		]));
 		root.appendChild(E('p', { 'class': 'rmm-dashboard-note' }, tr('Updates every 30 seconds')));
+		root.appendChild(E('p', { 'class': 'rmm-dashboard-note' }, tr('History starts when this page opens. Gaps indicate unavailable data.')));
 		root.appendChild(E('div', { 'class': 'rmm-dashboard-grid' }, sections));
 		root.appendChild(E('p', { 'class': 'rmm-dashboard-note' }, tr('WAN status shows the interface link state; it does not test Internet reachability.')));
 		root.appendChild(E('p', { 'class': 'rmm-dashboard-note' }, tr('Traffic counters belong to devices; shared devices are not summed.')));
@@ -195,6 +253,10 @@ return view.extend({
 		var running = !!(agent && agent.instances && Object.keys(agent.instances).some(function(k) { return agent.instances[k] && agent.instances[k].running; }));
 		var used = finite(memory.total) && memory.total > 0 && finite(memory.available) && memory.available <= memory.total ? memory.total - memory.available : null;
 		var rebooted = previousInfo && finite(previousInfo.value && previousInfo.value.uptime) && finite(info.uptime) && info.uptime < previousInfo.value.uptime;
+		var now = Date.now();
+		if (rebooted) this.history = { memory: [], devices: Object.create(null) };
+		var history = this.history;
+		history.memory = remember(history.memory, { at: now, used: sourceFresh(sources[1], now) && used !== null ? used / memory.total * 100 : null }, now);
 		var load = Array.isArray(info.load) && info.load.every(finite) ? info.load.map(function(v) { return (v / 65536).toFixed(2); }).join(' / ') : tr('Unavailable');
 		this.slots.system.replaceChildren(sourceLine('system.board', 0), sourceLine('system.info', 1), E('dl', {}, [
 			item(tr('Hostname'), reportedText(board.hostname)), item(tr('Model'), reportedText(board.model)),
@@ -202,6 +264,8 @@ return view.extend({
 			item(tr('Load (1 / 5 / 15 min)'), load), item(tr('Memory total'), formatBytes(memory.total)),
 			item(tr('Memory available'), formatBytes(memory.available)), item(tr('Memory used'), used === null ? tr('Unavailable') : formatBytes(used) + ' (' + (used / memory.total * 100).toFixed(1) + '%)')
 		]));
+		this.slots.system.appendChild(historyChart(tr('Memory history'), history.memory, [{key: 'used', label: tr('Memory used')}], 100, function(value) { return value.toFixed(1) + '%'; }, now));
+		var seenDevices = Object.create(null);
 		var networkRows = [sourceLine('network.interface.dump', 2), sourceLine('network.device.status', 5), E('dl', {}, [
 			item(tr('WAN connection'), sources[2].error && !sources[2].value ? failure(sources[2].error) : !wan.length ? tr('Not configured') : wan.some(function(e) { return e.up; }) ? tr('Connected') : tr('Disconnected'))
 		])];
@@ -217,7 +281,16 @@ return view.extend({
 				item(tr('Received / sent'), formatTraffic(stats.rx_bytes) + ' / ' + formatTraffic(stats.tx_bytes)),
 				item(tr('RX / TX rate'), fresh ? rate(stats.rx_bytes, before.rx_bytes, elapsed) + ' / ' + rate(stats.tx_bytes, before.tx_bytes, elapsed) : tr('Unavailable'))
 			]));
+			if (typeof name === 'string' && !seenDevices[name]) {
+				seenDevices[name] = true;
+				var validBaseline = fresh && sourceFresh(sources[1], now) && sourceFresh(sources[2], now) && sourceFresh(sources[5], now) && previousDevices && !previousDevices.error && previousInfo && !previousInfo.error;
+				history.devices[name] = remember(history.devices[name] || [], { at: now,
+					rx: validBaseline ? byteRate(stats.rx_bytes, before.rx_bytes, elapsed) : null,
+					tx: validBaseline ? byteRate(stats.tx_bytes, before.tx_bytes, elapsed) : null }, now);
+				networkRows.push(historyChart(tr('Traffic history') + ' · ' + name, history.devices[name], [{key:'rx',label:'RX'}, {key:'tx',label:'TX'}], null, function(value) { return formatTraffic(value) + '/s'; }, now));
+			}
 		});
+		Object.keys(history.devices).forEach(function(name) { if (!seenDevices[name]) delete history.devices[name]; });
 		if (!entries.length) networkRows.push(E('p', { 'class': 'rmm-dashboard-source' }, sources[2].error ? failure(sources[2].error) : tr('No interfaces')));
 		this.slots.network.replaceChildren.apply(this.slots.network, networkRows);
 		var agentStatus = !sources[3].value ? failure(sources[3].error) : !agent ? tr('Not installed') : running ? tr('Running') : !sources[4].value ? failure(sources[4].error) : config.enabled === '1' ? tr('Stopped') : tr('Disabled');

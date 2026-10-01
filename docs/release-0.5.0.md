@@ -8,6 +8,9 @@
 - PR #1 integrated with current P3 telemetry and standard luci.mk packaging.
 - Russian and Simplified Chinese translations built as separate IPK/APK
   packages, included in Releases and the shared signed feed.
+- Five-minute memory and RX/TX history from the existing 30-second poll;
+  bounded browser memory, source failure gaps, counter resets and reboots
+  handled, shared devices plotted once without summing interface counters.
 - Theme install removes uci-defaults only after successful execution.
 
 ## Verification
@@ -20,5 +23,4 @@ by UI checks. Deploy RMM feed support before publishing this release.
 ## Following stages
 
 [ROADMAP.md](../ROADMAP.md) describes the Vantage-inspired telemetry history,
-wireless radios/SSID, clients, network relationships and search. These
-features follow this navigation and PR integration.
+wireless radios/SSID, clients, network relationships and search. Wireless radios/SSID, clients, network relationships and search are next.

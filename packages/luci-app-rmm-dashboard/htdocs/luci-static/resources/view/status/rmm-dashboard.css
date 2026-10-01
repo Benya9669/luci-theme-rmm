@@ -54,3 +54,15 @@
 .rmm-dashboard-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .rmm-dashboard-toolbar .btn { min-height: 36px; }
 @media (max-width: 599px), (pointer: coarse) { .rmm-dashboard-toolbar .btn { min-height: 42px; } }
+
+/* History belongs to each metric source, in the same continuous surface. */
+.rmm-dashboard-chart { margin: 12px 16px 16px; min-width: 0; }
+.rmm-dashboard-chart figcaption, .rmm-dashboard-chart-scale, .rmm-dashboard-chart-times { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--rmm-muted, #a3aaae); font-size: 12px; }
+.rmm-dashboard-chart-title { color: var(--rmm-text, #e4e8ea); font-weight: 600; }
+.rmm-dashboard-chart-summary { margin: 8px 0; font: 13px/1.45 var(--font-mono, Consolas, monospace); }
+.rmm-dashboard-chart svg { display: block; width: 100%; height: auto; max-height: 180px; }
+.rmm-dashboard-chart-grid { stroke: var(--rmm-border, #283034); stroke-width: 1; }
+.rmm-dashboard-chart-line { stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rmm-dashboard-chart-rx, .rmm-dashboard-chart-used { stroke: var(--rmm-accent, #6f8999); }
+.rmm-dashboard-chart-tx { stroke: var(--rmm-success, #77957d); stroke-dasharray: 5 3; }
+.rmm-dashboard-chart-scale, .rmm-dashboard-chart-times { margin: 4px 0 0; font-family: var(--font-mono, Consolas, monospace); }

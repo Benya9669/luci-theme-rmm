@@ -130,3 +130,47 @@ test('RU and zh-cn catalogs cover current dashboard labels and source states',()
  const russian=catalog('ru');
  for (const [key,value] of Object.entries(dict)) assert.equal(russian[key],value);
 });
+
+test('history uses byte deltas, one shared-device plot and real timestamps',()=>{
+ const f=fixture(); const root=f.view.render(snapshot());
+ const traffic=(at,seconds)=>snapshot(at,{1:{at,value:{uptime:100+seconds,memory:{total:100,available:25},load:[0,0,0]}},2:{at,value:{interface:[{interface:'wan',l3_device:'eth0',up:true},{interface:'wan6',l3_device:'eth0',up:true}]}},5:{at,value:{eth0:{statistics:{rx_bytes:1048576+seconds*1024,tx_bytes:2097152+seconds*2048}}}}});
+ f.time(130000); f.view.update(root,traffic(130000,30));
+ f.time(160000); f.view.update(root,traffic(160000,60));
+ assert.equal(root.querySelectorAll('figure').length,2);
+ assert.equal(f.view.history.devices.eth0.at(-1).at,160000);
+ assert.equal(f.view.history.devices.eth0.at(-1).rx,1024);
+ assert.equal(f.view.history.devices.eth0.at(-1).tx,2048);
+ assert.match(root.querySelector('.rmm-dashboard-chart-rx').getAttribute('d'),/^M.+L/);
+ assert.match(root.textContent,/RX: 1.0 KiB\/s/);
+ assert.equal(f.polls.length,1);
+ assert.equal(f.polls[0].seconds,30);
+});
+test('history leaves gaps during errors, recovery and counter resets',()=>{
+ const f=fixture();const root=f.view.render(snapshot());
+ const update=(at,value,override={})=>{f.time(at);f.view.update(root,snapshot(at,{5:{at,value:{eth0:{statistics:{rx_bytes:value,tx_bytes:value}}}},...override}));};
+ update(130000,4000000);update(160000,8000000);
+ update(190000,12000000,{5:{error:{code:6}}});
+ assert.equal(f.view.history.devices.eth0.at(-1).rx,null);
+ update(220000,16000000);
+ assert.equal(f.view.history.devices.eth0.at(-1).rx,null);
+ update(250000,20000000);update(280000,24000000);
+ assert.equal(root.querySelector('.rmm-dashboard-chart-rx').getAttribute('d').match(/M/g).length,2);
+ update(310000,1);
+ assert.equal(f.view.history.devices.eth0.at(-1).rx,null);
+ update(340000,100,{1:{error:{code:6}}});
+ assert.equal(f.view.history.memory.at(-1).used,null);
+ update(370000,200,{1:{at:370000,value:{uptime:1,memory:{total:100,available:50},load:[0,0,0]}}});
+ assert.equal(f.view.history.memory.length,1);
+ assert.equal(f.view.history.devices.eth0.length,1);
+ assert.equal(f.view.history.devices.eth0[0].rx,null);
+});
+test('history bounds frequent retries and never joins long collection gaps',()=>{
+ const f=fixture();const root=f.view.render(snapshot());
+ for(let at=101000;at<=700000;at+=1000){f.time(at);f.view.update(root,snapshot(at));}
+ assert.ok(f.view.history.memory.length<=61);
+ assert.ok(f.view.history.memory.every(point=>point.at>=400000));
+ f.time(800000);f.view.update(root,snapshot(800000));
+ const d=root.querySelector('.rmm-dashboard-chart-used').getAttribute('d');
+ assert.ok(d.match(/M/g).length>=2);
+ assert.doesNotMatch(root.querySelector('.rmm-dashboard-chart svg').getAttribute('aria-label'),/Максимум: 100.0%/);
+});
