@@ -51,7 +51,7 @@ builds publish both translation packages alongside the theme and dashboard. Test
 on `main` and PRs upload artifacts without publishing a release
 or dispatching a feed update. See [the dashboard roadmap](ROADMAP.md).
 
-## Dashboard history (prepared for 0.5.0)
+## Dashboard history (0.5.0)
 
 Memory use and per-device RX/TX rates have five-minute SVG charts. History
 exists only while this dashboard view is open, with at most 61 points per
@@ -61,8 +61,8 @@ router files, additional Internet probes or new ACL permissions are added.
 
 ## Current release
 
-Version **0.4.0** adds P2 interface-table corrections and the P3 dashboard with source states, timestamps, memory and traffic.
-See [release notes](docs/release-0.4.0.md) for changes, upgrade verification and
+Version **0.5.0** adds icon navigation, RU/zh-cn packages, bounded dashboard histories, Wi-Fi stations and filters, network relationships and menu search.
+See [release notes](docs/release-0.5.0.md) for changes, upgrade verification and
 remaining device testing.
 
 ## GitHub Releases and shared feed
@@ -93,11 +93,11 @@ Actions runs these checks before the two SDK builds.
 ## 0.4.0 verification
 
 P2 headerless interface-table corrections and P3 dashboard are described in
-[0.4.0 notes](docs/release-0.4.0.md). The local package versions are 0.4.0-r1;
+[0.4.0 notes](docs/release-0.4.0.md). Those packages were 0.4.0-r1;
 router verification remains pending. Read permissions add only
 network.device.status; the overview performs no Internet probes or writes.
 
-## Wireless overview (prepared for 0.5.0)
+## Wireless overview (0.5.0)
 
 The dashboard reads active Wi-Fi interfaces through iwinfo devices/info/assoclist.
 It shows radio, SSID, band, channel, reported channel mode, TX power, noise,
@@ -115,7 +115,7 @@ Wireless page. Reads share the existing 30-second poll; each source retains its
 last successful timestamp on failure and recovers independently. Test both
 RMM and Bootstrap at 320–1440 px after installation.
 
-## Client filters and details (prepared for 0.5.0)
+## Client filters and details (0.5.0)
 
 Search station names, MAC/IP, interface or SSID and combine with band/RSSI
 filters. These controls use the current snapshot and make no extra RPC calls.
@@ -134,7 +134,7 @@ After installation verify search, combined filters, empty results, clearing,
 keyboard disclosure and preservation across polling at 320/390/768/1440 px
 in both RMM and Bootstrap. Device and responsive verification remain pending.
 
-## Network relationships (prepared for 0.5.0)
+## Network relationships (0.5.0)
 
 The overview includes a responsive semantic list of the local router, reported
 uplink interfaces, default-route IPv4/IPv6 gateways, radios, SSIDs and stations.
@@ -151,7 +151,7 @@ mode or Internet availability. No new calls, ACLs or router changes are needed.
 After installation check station links by keyboard/touch, cached source errors
 and long identifiers at 320/390/768/1440 px in RMM and Bootstrap.
 
-## Menu search (prepared for 0.5.0)
+## Menu search (0.5.0)
 
 The RMM theme adds a Search button above the page and Ctrl+K / Cmd+K.
 Search indexes only same-origin admin links already rendered in the current

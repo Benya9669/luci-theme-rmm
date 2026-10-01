@@ -1,4 +1,4 @@
-# LuCI 0.5.0 (prepared, not published)
+# LuCI 0.5.0
 
 - Desktop sidebar with local Tabler icons, accessible names and tooltips.
   Click or keyboard focus opens a text submenu; Escape closes and restores
