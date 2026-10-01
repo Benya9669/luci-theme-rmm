@@ -147,8 +147,9 @@ input:focus, button:focus-visible, textarea:focus, select:focus,
 .btn:hover, .cbi-button:hover, button:hover { background: var(--rmm-surface-3); box-shadow: none; }
 .btn.primary, .cbi-button-action.important,
 .cbi-page-actions .cbi-button-apply, .cbi-section-actions .cbi-button-edit,
-.cbi-button-positive.important, .cbi-page-actions .cbi-button-save {
-	background: var(--rmm-accent);
+.cbi-button-positive.important, .cbi-page-actions > .cbi-button.cbi-button-save {
+	background-color: var(--rmm-accent);
+	background-image: none;
 	border-color: var(--rmm-accent-hover);
 	color: var(--rmm-bg);
 	box-shadow: none;
@@ -457,7 +458,7 @@ pre, #syslog, .command-output, .uci-change-list {
 	}
 	.rmm-global-nav .nav .dropdown-menu li a.rmm-current { border-left: 3px solid var(--rmm-accent); padding-left: 9px; }
 	.cbi-value { display: block; }
-	.cbi-value-title { display: block; width: 100%; text-align: left; }
+	.cbi-value > label.cbi-value-title { display: block; width: 100%; text-align: left; float: none; padding: 0 0 6px; }
 	.cbi-value-field { width: 100%; min-width: 0; max-width: 100%; margin-left: 0; }
 	.cbi-value-field input:not([type="checkbox"]):not([type="radio"]) { max-width: 100%; }
 	.cbi-value-field .control-group { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; }
@@ -486,7 +487,7 @@ pre, #syslog, .command-output, .uci-change-list {
 .rmm-search-launcher { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .rmm-search-launcher .btn[hidden], .rmm-search-launcher:has(> .btn[hidden]) { display: none; }
 .rmm-search-launcher .btn, .rmm-search-heading .btn { min-height: 36px; }
-dialog.rmm-menu-search { box-sizing: border-box; width: calc(100% - 24px); max-width: 560px; max-height: calc(100dvh - 24px); overflow-y: auto; margin: auto; padding: 16px; color: var(--rmm-text); background: var(--rmm-surface); border: 1px solid var(--rmm-border-strong); border-radius: 8px; box-shadow: none; }
+dialog.rmm-menu-search { box-sizing: border-box; width: calc(100% - 24px); max-width: 560px; max-height: min(640px, calc(100dvh - 24px)); overflow-y: auto; margin: auto; padding: 16px; color: var(--rmm-text); background: var(--rmm-surface); border: 1px solid var(--rmm-border-strong); border-radius: 8px; box-shadow: none; }
 dialog.rmm-menu-search::backdrop { background: rgb(9 11 13 / 75%); }
 .rmm-search-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .rmm-search-heading h2 { font-size: 18px; margin: 0; }

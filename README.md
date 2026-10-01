@@ -171,3 +171,13 @@ limited to 50 visible links, with shown/total count and an explicit empty state.
 After installation verify keyboard/focus, native unsaved-change handling on
 navigation, permitted menu contents and touch at 320/390/768/1440 px. Search
 is a theme feature; the dashboard remains compatible with Bootstrap.
+
+## Dashboard layout (0.6.0)
+
+The overview prioritizes WAN link, memory, load average, Wi-Fi client count and
+agent service state. Compact WAN/memory histories precede radio and client lists.
+On phones, memory history starts collapsed; opening and closing disclosures is
+local UI state. Radio and station disclosures retain their state across polling.
+Detailed router/interface metrics, relationships and timestamps remain in native
+disclosures. Source errors and cached/stale values stay explicit. Polling and
+read-only ACLs are unchanged. See [release notes](docs/release-0.6.0.md).

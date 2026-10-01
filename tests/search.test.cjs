@@ -41,7 +41,7 @@ test('shortcut preserves editing and existing LuCI dialogs; result anchors retai
 });
 test('packaging and versioned footer include the menu search asset',()=>{
  const make=fs.readFileSync('packages/luci-theme-rmm/Makefile','utf8'),footer=fs.readFileSync('packages/luci-theme-rmm/ucode/template/themes/rmm/footer.ut','utf8');
- assert.ok(make.includes('/search.js'));assert.ok(footer.includes('/search.js?v=0.5.0'));
+ assert.ok(make.includes('/search.js'));assert.ok(footer.includes('/search.js?v=' + fs.readFileSync('packages/luci-theme-rmm/Makefile','utf8').match(/PKG_VERSION:=(.+)/)[1].trim()));
 });
 
 test('Enter from the query activates a native result anchor',()=>{

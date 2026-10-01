@@ -319,3 +319,30 @@ msgstr "打开站点详情"
 
 msgid "Only reported routes and Wi-Fi associations are shown; physical cabling and Internet reachability are not inferred."
 msgstr "仅显示报告的路由和 Wi-Fi 关联；不推断物理布线或互联网可达性。"
+
+msgid "Router overview"
+msgstr "路由器概览"
+
+msgid "Wi-Fi clients"
+msgstr "Wi-Fi 客户端"
+
+msgid "Memory"
+msgstr "内存"
+
+msgid "WAN traffic"
+msgstr "WAN 流量"
+
+msgid "Network interfaces"
+msgstr "网络接口"
+
+msgid "Router details"
+msgstr "路由器详情"
+
+msgid "Reported radios"
+msgstr "已报告的无线电"
+
+msgid "No WAN device reported"
+msgstr "未报告 WAN 设备"
+
+msgid "Summary"
+msgstr "摘要"

@@ -44,11 +44,11 @@ function snapshot(at=100000, overrides={}) {
 
 test('system, network and agent show real metrics, timestamps and 30-second polling',()=>{
   const f=fixture(); const root=f.view.render(snapshot());
-  assert.equal(root.querySelectorAll('section').length,5);
+  assert.equal(root.querySelectorAll('section').length,3);
   assert.match(root.textContent,/75.0 MiB \(75.0%\)/);
   assert.match(root.textContent,/192.0.2.1/);
   assert.match(root.textContent,/600 с/);
-  assert.equal(root.querySelectorAll('time').length,12);
+  assert.equal(root.querySelectorAll('time').length,10);
   assert.equal(f.polls[0].seconds,30);
   assert.match(root.textContent,/Накопление данных/);
 });
@@ -311,4 +311,47 @@ test('relationship failures retain source states and recovery removes disconnect
  f.time(160000);f.view.update(root,snapshot(160000));assert.equal(f.view.slots.topology.querySelectorAll('button').length,0);
  assert.match(f.view.slots.topology.textContent,/Шлюз по умолчанию не указан/);
  assert.match(f.view.slots.topology.textContent,/Беспроводные интерфейсы не найдены/);
+});
+
+test('overview keeps failures visible while expert sections and station metrics are disclosed',()=>{
+ const f=fixture(), root=f.view.render(wirelessSnapshot());
+ assert.equal(root.firstElementChild.className,'rmm-dashboard-heading');
+ assert.equal(root.querySelectorAll('.rmm-dashboard-metric').length,4);
+ assert.equal(root.querySelectorAll('.rmm-dashboard-expert > details[open]').length,0);
+ const station=root.querySelector('.rmm-dashboard-station-details');
+ assert.match(station.querySelector('summary').textContent,/192.0.2/);
+ assert.ok(station.querySelector('summary .rmm-dashboard-client-signal'));
+ assert.ok(station.querySelector('div dl'));
+ station.setAttribute('open','');
+ f.time(130000);f.view.update(root,wirelessSnapshot(130000,undefined,{code:6}));
+ assert.equal(root.querySelector('.rmm-dashboard-station-details'),station);
+ assert.ok(station.hasAttribute('open'));
+ assert.match(root.querySelector('.rmm-dashboard-client-signal').textContent,/Устаревшие данные/);
+ assert.match(root.querySelector('.rmm-dashboard-radio-state').textContent,/Нет доступа/);
+ f.time(160000);f.view.update(root,snapshot(160000,{1:{error:{code:6}},2:{error:{code:6}},3:{error:{code:6}}}));
+ assert.match(f.view.overview.textContent,/Устаревшие данные · Нет доступа/);
+ assert.match(f.view.agentSummary.textContent,/Устаревшие данные · Нет доступа/);
+ assert.equal(f.polls.length,1);assert.equal(f.calls.length,0);
+});
+test('WAN graphs remain unique while secondary device history stays in disclosures',()=>{
+ const f=fixture(), data=snapshot();
+ data[2].value.interface.push({interface:'wan6',l3_device:'eth0',up:true},{interface:'loopback',l3_device:'lo',up:true});
+ data[5].value.lo={statistics:{rx_bytes:0,tx_bytes:0}};
+ const root=f.view.render(data);
+ assert.equal(f.view.trafficChart.querySelectorAll('figure').length,1);
+ assert.equal(f.view.slots.network.querySelectorAll('details figure').length,1);
+ assert.equal(f.view.slots.network.querySelectorAll('details[open]').length,0);
+ assert.equal(f.view.memoryChart.querySelectorAll('figure').length,1);
+});
+
+test('radio disclosure and summary identities survive polling without losing open state',()=>{
+ const f=fixture(), root=f.view.render(wirelessSnapshot());
+ const radio=root.querySelector('.rmm-dashboard-radio'), summary=radio.querySelector('summary');
+ radio.setAttribute('open','');
+ f.time(130000);f.view.update(root,wirelessSnapshot(130000));
+ assert.equal(root.querySelector('.rmm-dashboard-radio'),radio);
+ assert.equal(radio.querySelector('summary'),summary);
+ assert.ok(radio.hasAttribute('open'));
+ f.time(160000);f.view.update(root,snapshot(160000));
+ assert.equal(Object.keys(f.view.radioNodes).length,0);
 });

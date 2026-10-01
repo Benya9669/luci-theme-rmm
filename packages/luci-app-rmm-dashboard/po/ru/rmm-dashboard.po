@@ -313,3 +313,30 @@ msgstr "Открыть детали станции"
 
 msgid "Only reported routes and Wi-Fi associations are shown; physical cabling and Internet reachability are not inferred."
 msgstr "Показаны указанные маршруты и Wi-Fi-подключения; физическая коммутация и доступ в Интернет не определяются."
+
+msgid "Router overview"
+msgstr "Обзор роутера"
+
+msgid "Wi-Fi clients"
+msgstr "Клиенты Wi-Fi"
+
+msgid "Memory"
+msgstr "Память"
+
+msgid "WAN traffic"
+msgstr "Трафик WAN"
+
+msgid "Network interfaces"
+msgstr "Сетевые интерфейсы"
+
+msgid "Router details"
+msgstr "Детали роутера"
+
+msgid "Reported radios"
+msgstr "Доступные радиомодули"
+
+msgid "No WAN device reported"
+msgstr "Устройство WAN не указано"
+
+msgid "Summary"
+msgstr "Сводка"
