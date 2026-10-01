@@ -37,6 +37,7 @@ jobs:
           set -euo pipefail
           node --check packages/luci-theme-rmm/htdocs/luci-static/rmm/navigation.js
           node --check packages/luci-theme-rmm/htdocs/luci-static/rmm/components.js
+          node --check packages/luci-theme-rmm/htdocs/luci-static/rmm/search.js
           npm test
           node --check packages/luci-app-rmm-dashboard/htdocs/luci-static/resources/view/status/rmm-dashboard.js
           python3 -m json.tool packages/luci-app-rmm-dashboard/root/usr/share/luci/menu.d/luci-app-rmm-dashboard.json >/dev/null

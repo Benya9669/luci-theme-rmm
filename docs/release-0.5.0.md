@@ -21,6 +21,9 @@
 - Read-only network relationships: reported default-route gateways, router,
   radios, SSIDs and station detail actions. Custom uplink names are supported;
   source errors stay explicit. No physical topology or Internet inference.
+- Theme menu search via Ctrl+K/Cmd+K and a touch button: authorized rendered
+  links, categories, native dialog, keyboard navigation and focus restoration.
+  No backend requests; RU/EN/zh labels bundled independently of dashboard.
 - Theme install removes uci-defaults only after successful execution.
 
 ## Verification
@@ -33,4 +36,4 @@ by UI checks. Deploy RMM feed support before publishing this release.
 ## Following stages
 
 [ROADMAP.md](../ROADMAP.md) describes the Vantage-inspired telemetry history,
-wireless radios/SSID, clients, network relationships and search. Menu search is next; activity and client traffic require confirmed sources.
+wireless radios/SSID, clients, network relationships and search. Extending search to current telemetry is next; activity and client traffic require confirmed sources.

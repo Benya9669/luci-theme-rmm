@@ -481,3 +481,20 @@ pre, #syslog, .command-output, .uci-change-list {
 	.rmm-status-table .td { text-align: left; white-space: normal; overflow-wrap: anywhere; }
 	.rmm-status-table .cbi-section-actions > div { justify-content: flex-start; }
 }
+
+/* Search indexes only links rendered by the authorized LuCI menu. */
+.rmm-search-launcher { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.rmm-search-launcher .btn[hidden], .rmm-search-launcher:has(> .btn[hidden]) { display: none; }
+.rmm-search-launcher .btn, .rmm-search-heading .btn { min-height: 36px; }
+dialog.rmm-menu-search { box-sizing: border-box; width: calc(100% - 24px); max-width: 560px; max-height: calc(100dvh - 24px); overflow-y: auto; margin: auto; padding: 16px; color: var(--rmm-text); background: var(--rmm-surface); border: 1px solid var(--rmm-border-strong); border-radius: 8px; box-shadow: none; }
+dialog.rmm-menu-search::backdrop { background: rgb(9 11 13 / 75%); }
+.rmm-search-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.rmm-search-heading h2 { font-size: 18px; margin: 0; }
+.rmm-menu-search label { display: block; margin-bottom: 8px; }
+.rmm-menu-search input { width: 100%; box-sizing: border-box; min-height: 36px; }
+.rmm-search-meta { color: var(--rmm-muted); font-size: 12px; margin: 8px 0; }
+.rmm-search-results { list-style: none; margin: 12px 0 0; padding: 0; }
+.rmm-search-results li { border-top: 1px solid var(--rmm-border); }
+.rmm-search-results a { display: block; padding: 12px 8px; color: var(--rmm-text); overflow-wrap: anywhere; }
+.rmm-search-results a:hover, .rmm-search-results a:focus-visible { background: var(--rmm-surface-3); }
+@media (pointer: coarse) { .rmm-search-launcher .btn, .rmm-search-heading .btn, .rmm-menu-search input, .rmm-search-results a { min-height: 42px; } }

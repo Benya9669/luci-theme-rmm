@@ -31,6 +31,7 @@ define Package/luci-theme-rmm/install
 	$(INSTALL_DATA) ./htdocs/luci-static/rmm/icons.svg $(1)/www/luci-static/rmm/icons.svg
 	$(INSTALL_DATA) ./htdocs/luci-static/rmm/navigation.js $(1)/www/luci-static/rmm/navigation.js
 	$(INSTALL_DATA) ./htdocs/luci-static/rmm/components.js $(1)/www/luci-static/rmm/components.js
+	$(INSTALL_DATA) ./htdocs/luci-static/rmm/search.js $(1)/www/luci-static/rmm/search.js
 	$(INSTALL_DIR) $(1)/usr/share/ucode/luci/template/themes/rmm
 	$(INSTALL_DATA) ./ucode/template/themes/rmm/*.ut $(1)/usr/share/ucode/luci/template/themes/rmm/
 	$(INSTALL_DIR) $(1)/etc/uci-defaults

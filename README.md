@@ -150,3 +150,24 @@ values on failures. They do not discover physical cabling, all LAN devices, NAT
 mode or Internet availability. No new calls, ACLs or router changes are needed.
 After installation check station links by keyboard/touch, cached source errors
 and long identifiers at 320/390/768/1440 px in RMM and Bootstrap.
+
+## Menu search (prepared for 0.5.0)
+
+The RMM theme adds a Search button above the page and Ctrl+K / Cmd+K.
+Search indexes only same-origin admin links already rendered in the current
+LuCI menu, with parent section labels. Hidden/disabled links, logout, external
+URLs and duplicate destinations are excluded. It does not enumerate backend
+routes, send queries or read settings. The existing LuCI ACL enforcement
+continues to control navigation; the DOM index is not an authorization boundary.
+
+Type words, select with Up/Down, open with Enter, close with Escape or Close.
+Tab stays in the native dialog; closing restores focus. Search does not open
+over another dialog or intercept shortcuts while editing settings fields.
+The button appears after available menu routes load; unsupported native-dialog
+browsers keep the normal menu. Russian, English and Simplified Chinese labels
+are bundled in the theme, independent of dashboard translations. Results are
+limited to 50 visible links, with shown/total count and an explicit empty state.
+
+After installation verify keyboard/focus, native unsaved-change handling on
+navigation, permitted menu contents and touch at 320/390/768/1440 px. Search
+is a theme feature; the dashboard remains compatible with Bootstrap.
