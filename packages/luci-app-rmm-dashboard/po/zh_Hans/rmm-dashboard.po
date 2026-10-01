@@ -346,3 +346,72 @@ msgstr "未报告 WAN 设备"
 
 msgid "Summary"
 msgstr "摘要"
+
+msgid "Gateway"
+msgstr "网关"
+
+msgid "Local interfaces"
+msgstr "本地接口"
+
+msgid "Reported network path"
+msgstr "已报告的网络路径"
+
+msgid "Logical interfaces and Wi-Fi associations"
+msgstr "逻辑接口和 Wi-Fi 关联"
+
+msgid "Close"
+msgstr "关闭"
+
+msgid "Details"
+msgstr "详情"
+
+msgid "Sort clients"
+msgstr "排序"
+
+msgid "By name"
+msgstr "按名称"
+
+msgid "Strongest signal"
+msgstr "信号优先"
+
+msgid "Fastest link"
+msgstr "速率优先"
+
+msgid "Group clients"
+msgstr "分组"
+
+msgid "No grouping"
+msgstr "不分组"
+
+msgid "By SSID"
+msgstr "按 SSID"
+
+msgid "Received"
+msgstr "接收"
+
+msgid "Sent"
+msgstr "发送"
+
+msgid "Inspect samples with arrow keys"
+msgstr "使用方向键查看样本"
+
+msgid "Data is not reported"
+msgstr "未报告数据"
+
+msgid "Attention required"
+msgstr "需要注意"
+
+msgid "No reported issues"
+msgstr "报告数据中未发现问题"
+
+msgid "Memory usage ≥ 90%"
+msgstr "内存使用率 ≥ 90%"
+
+msgid "Object is no longer reported"
+msgstr "对象已不在报告中"
+
+msgid "Refresh issues"
+msgstr "更新问题"
+
+msgid "Resource summary"
+msgstr "资源状态"

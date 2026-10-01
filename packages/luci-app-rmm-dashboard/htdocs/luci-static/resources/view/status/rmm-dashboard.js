@@ -18,10 +18,34 @@ var callLeases = rpc.declare({ object: 'luci-rpc', method: 'getDHCPLeases', expe
 var callConfig = rpc.declare({ object: 'uci', method: 'get', params: [ 'config', 'section' ], expect: { values: {} } });
 
 var russian = {
- "Router overview": "Обзор роутера", "Wi-Fi clients": "Клиенты Wi-Fi", "Memory": "Память",
- "WAN traffic": "Трафик WAN", "Network interfaces": "Сетевые интерфейсы",
- "Router details": "Детали роутера", "Reported radios": "Доступные радиомодули",
- "No WAN device reported": "Устройство WAN не указано", "Summary": "Сводка",
+	"Close": "Закрыть",
+	"Details": "Подробности",
+	"Sort clients": "Сортировка",
+	"By name": "По имени",
+	"Strongest signal": "Сначала сильный сигнал",
+	"Fastest link": "Сначала быстрое соединение",
+	"Group clients": "Группировка",
+	"No grouping": "Без группировки",
+	"By SSID": "По SSID",
+	"Received": "Принято",
+	"Sent": "Отправлено",
+	"Inspect samples with arrow keys": "Выбирайте измерения стрелками",
+	"Data is not reported": "Данные не получены",
+	"Attention required": "Требует внимания",
+	"No reported issues": "По полученным данным проблем нет",
+	"Memory usage ≥ 90%": "Занято памяти ≥ 90%",
+	"Object is no longer reported": "Объект больше не указан в данных",
+	"Refresh issues": "Проблемы обновления",
+	"Resource summary": "Состояние ресурсов",
+
+	"Gateway": "Шлюз", "Local interfaces": "Локальные интерфейсы",
+	"Reported network path": "Связи по данным роутера",
+	"Logical interfaces and Wi-Fi associations": "Логические интерфейсы и подключения Wi-Fi",
+
+	"Router overview": "Обзор роутера", "Wi-Fi clients": "Клиенты Wi-Fi", "Memory": "Память",
+	"WAN traffic": "Трафик WAN", "Network interfaces": "Сетевые интерфейсы",
+	"Router details": "Детали роутера", "Reported radios": "Доступные радиомодули",
+	"No WAN device reported": "Устройство WAN не указано", "Summary": "Сводка",
 
 	"Network relationships": "Связи сети",
 	"Local router": "Локальный роутер",
@@ -200,12 +224,42 @@ function historyChart(title, samples, series, fixedMax, format, now) {
 		});
 		if (commands.length) svg.appendChild(svgElement('path', { d: commands.join(' '), 'class': 'rmm-dashboard-chart-line rmm-dashboard-chart-' + entry.key, fill: 'none', 'vector-effect': 'non-scaling-stroke' }));
 	});
+	var readout = E('p',{'class':'rmm-dashboard-chart-readout'},tr('Inspect samples with arrow keys'));
+	var cursor = svgElement('line',{y1:12,y2:116,'class':'rmm-dashboard-chart-cursor',visibility:'hidden'});
+	svg.appendChild(cursor);
+	svg.setAttribute('tabindex','0');
+	svg.setAttribute('data-chart-title',title);
+	svg.setAttribute('aria-label',svg.getAttribute('aria-label') + ' · ' + tr('Inspect samples with arrow keys'));
+	var selected = Math.max(0,samples.length - 1);
+	function inspect(index) {
+		if (!samples.length) return;
+		selected = Math.max(0,Math.min(samples.length - 1,index));
+		var point = samples[selected], x = 8 + Math.max(0,Math.min(1,(point.at - (now-historyWindow))/historyWindow))*584;
+		cursor.setAttribute('x1',x);cursor.setAttribute('x2',x);cursor.setAttribute('visibility','visible');
+		readout.textContent = clock(point.at) + ' · ' + series.map(function(entry) { return entry.label + ': ' + (finite(point[entry.key]) ? format(point[entry.key]) : tr('Data is not reported')); }).join(' · ');
+	}
+	svg.addEventListener('pointermove',function(event) {
+		var rect=svg.getBoundingClientRect(), target=now-historyWindow + Math.max(0,Math.min(1,((event.clientX-rect.left)/rect.width*600-8)/584))*historyWindow;
+		var closest=0; samples.forEach(function(point,index) { if (Math.abs(point.at-target)<Math.abs(samples[closest].at-target)) closest=index; });inspect(closest);
+	});
+	svg.addEventListener('pointerdown',function() { svg.focus({preventScroll:true}); });
+	svg.addEventListener('keydown',function(event) {
+		if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+		event.preventDefault();inspect(event.key==='Home' ? 0 : event.key==='End' ? samples.length-1 : selected+(event.key==='ArrowLeft' ? -1 : 1));
+	});
+	figure.appendChild(E('div',{'class':'rmm-dashboard-chart-legend'},series.map(function(entry) { return E('span',{'data-series':entry.key},entry.label + (entry.key==='rx' ? ' · '+tr('Received') : entry.key==='tx' ? ' · '+tr('Sent') : '')); })));
 	figure.appendChild(svg);
+	figure.appendChild(readout);
 	figure.appendChild(E('p', { 'class': 'rmm-dashboard-chart-scale' }, [E('span', {}, format(0)), E('span', {}, format(max))]));
 	figure.appendChild(E('p', { 'class': 'rmm-dashboard-chart-times' }, [E('span', {}, clock(now - historyWindow)), E('span', {}, clock(now))]));
 	if (samples.filter(function(point) { return series.some(function(entry) { return finite(point[entry.key]); }); }).length < 2)
 		figure.appendChild(E('p', { 'class': 'rmm-dashboard-note' }, tr('Collecting')));
 	return figure;
+}
+
+// Local Tabler registry; MIT attribution is shipped with this package.
+function dashboardIcon(name) {
+	return svgElement('svg', {viewBox:'0 0 24 24','class':'rmm-dashboard-icon','aria-hidden':'true',focusable:'false',fill:'none',stroke:'currentColor','stroke-width':2,'stroke-linecap':'round','stroke-linejoin':'round'},[svgElement('use',{href:L.resource('view/status/rmm-dashboard-icons.svg') + '#icon-' + name})]);
 }
 
 function item(label, value, state) {
@@ -289,36 +343,43 @@ return view.extend({
 
 	render: function(data) {
 		if (!document.getElementById('rmm-dashboard-styles'))
-			document.head.appendChild(E('link', { id: 'rmm-dashboard-styles', rel: 'stylesheet', href: L.resource('view/status/rmm-dashboard.css') + '?v=0.6.0' }));
+			document.head.appendChild(E('link', { id: 'rmm-dashboard-styles', rel: 'stylesheet', href: L.resource('view/status/rmm-dashboard.css') + '?v=0.7.0' }));
 		this.sources = [];
 		this.history = { memory: [], devices: Object.create(null) };
 		this.slots = {};
 		this.stationHistory = Object.create(null);
 		this.stationNodes = Object.create(null);
 		this.radioNodes = Object.create(null);
+		this.relationshipNodes = Object.create(null);
 		this.status = E('span', { 'class': 'rmm-dashboard-refresh', role: 'status', 'aria-live': 'polite' }, tr('Loading'));
 		this.retry = E('button', { 'class': 'btn', type: 'button', click: L.bind(function() { return this.refresh(); }, this) }, tr('Retry'));
 		var root = E('div', { 'class': 'rmm-dashboard' });
 		this.identity = E('p', {'class':'rmm-dashboard-identity'});
 		this.overview = E('section', {'class':'rmm-dashboard-overview','aria-label':tr('Summary')});
 		this.agentSummary = E('div', {'class':'rmm-dashboard-agent-summary'});
+		this.healthSummary = E('section',{'class':'rmm-dashboard-health','aria-label':tr('Resource summary')});
 		this.trafficChart = E('div', {'class':'rmm-dashboard-history-panel'});
 		this.memoryChart = E('div', {'class':'rmm-dashboard-history-panel'});
 		this.memoryDisclosure = E('details', {'class':'rmm-dashboard-memory rmm-dashboard-disclosure'},[E('summary',{},tr('Memory history')),this.memoryChart]);
 		if (typeof window === 'undefined' || !window.matchMedia || !window.matchMedia('(max-width: 767px)').matches) this.memoryDisclosure.setAttribute('open','');
 		this.radioContent = E('div', {'class':'rmm-dashboard-radios'});
-		function section(title, content) { return E('section', {'class':'rmm-dashboard-section'}, [E('h2',{},tr(title)),content]); }
-		var disclosures = [['system','Router details'],['network','Network interfaces'],['topology','Network relationships'],['agent','RMM agent']].map(L.bind(function(entry) {
+		function section(title, content) { return E('section', {'class':'rmm-dashboard-section'}, [E('h2',{},[dashboardIcon(title === 'Wireless' ? 'router' : title === 'Wi-Fi clients' ? 'layout-grid' : 'network'),E('span',{},tr(title))]),content]); }
+		var disclosures = [['system','Router details'],['network','Network interfaces'],['agent','RMM agent']].map(L.bind(function(entry) {
 			this.slots[entry[0]] = E('div', {'class':'rmm-dashboard-content'});
 			return E('details', {'class':'rmm-dashboard-disclosure'}, [E('summary',{},tr(entry[1])),this.slots[entry[0]]]);
 		},this));
 		this.slots.wireless = E('div', {'class':'rmm-dashboard-content'});
+		this.slots.topology = E('div', {'class':'rmm-dashboard-content'});
 		root.appendChild(E('div', {'class':'rmm-dashboard-heading'}, [
-			E('div', {}, [E('div', {'class':'rmm-dashboard-eyebrow'},tr('SYSTEM / OVERVIEW')),E('h1',{},tr('Router overview')),this.identity]),
+			E('div', {}, [E('div', {'class':'rmm-dashboard-eyebrow'},tr('SYSTEM / OVERVIEW')),E('h1',{},[dashboardIcon('router'),E('span',{},tr('Router overview'))]),this.identity]),
 			E('div', {'class':'rmm-dashboard-toolbar'}, [this.status,this.retry])
 		]));
 		root.appendChild(this.overview);
 		root.appendChild(this.agentSummary);
+		root.appendChild(this.healthSummary);
+		var pathSection = section('Network relationships',this.slots.topology);
+		pathSection.classList.add('rmm-dashboard-network-path');
+		root.appendChild(pathSection);
 		root.appendChild(E('div', {'class':'rmm-dashboard-charts'}, [this.trafficChart,this.memoryDisclosure]));
 		root.appendChild(section('Wireless',this.radioContent));
 		root.appendChild(section('Wi-Fi clients',this.slots.wireless));
@@ -333,24 +394,31 @@ return view.extend({
 			E('p', {'class':'rmm-dashboard-note'},tr('Wireless interfaces visible to iwinfo are shown; disabled radios are not inventoried.')),
 			E('p', {'class':'rmm-dashboard-note'},tr('Link rates are negotiated Wi-Fi rates, not measured traffic.'))
 		]));
+		this.detailTitle=E('h2',{id:'rmm-dashboard-detail-title'});
+		this.detailContent=E('div',{'class':'rmm-dashboard-detail-content'});
+		this.detailClose=E('button',{type:'button','class':'btn',click:L.bind(function(){this.detailDialog.close();},this)},tr('Close'));
+		this.detailDialog=E('dialog',{'class':'rmm-dashboard-inspector','aria-labelledby':'rmm-dashboard-detail-title',close:L.bind(this.restoreDetails,this)},[E('div',{'class':'rmm-dashboard-detail-header'},[this.detailTitle,this.detailClose]),this.detailContent]);
+		root.appendChild(this.detailDialog);
 		var filterChange = L.bind(this.filterStations, this);
 		function field(id, label, control) { return E('label', {for:id}, [E('span',{},tr(label)),control]); }
 		function select(id, options) { return E('select',{id:id,change:filterChange}, options.map(function(option) { return E('option',{value:option[0]},tr(option[1])); })); }
 		this.clientSearch = E('input',{id:'rmm-client-search',type:'search',maxlength:128,input:filterChange,placeholder:tr('Search by name, MAC, IP or SSID')});
 		this.clientBand = select('rmm-client-band',[['all','All bands'],['2.4 GHz','2.4 GHz'],['5 GHz','5 GHz'],['6 GHz','6 GHz'],['60 GHz','60 GHz']]);
 		this.clientSignal = select('rmm-client-signal',[['all','All signals'],['strong','Signal ≥ -67 dBm'],['medium','Signal -68…-75 dBm'],['weak','Signal < -75 dBm'],['unknown','Unknown signal']]);
+		this.clientSort=select('rmm-client-sort',[['name','By name'],['signal','Strongest signal'],['rate','Fastest link']]);
+		this.clientGroup=select('rmm-client-group',[['none','No grouping'],['ssid','By SSID']]);
 		this.clientCount = E('p',{'class':'rmm-dashboard-source',role:'status','aria-live':'polite'});
 		this.clientEmpty = E('p',{'class':'rmm-dashboard-source',hidden:''},tr('No matching stations'));
 		this.wirelessContent = E('div',{});
 		this.slots.wireless.appendChild(E('div',{'class':'rmm-dashboard-filters'},[
-			field('rmm-client-search','Search clients',this.clientSearch),field('rmm-client-band','Band',this.clientBand),field('rmm-client-signal','Signal',this.clientSignal),
+			field('rmm-client-search','Search clients',this.clientSearch),field('rmm-client-band','Band',this.clientBand),field('rmm-client-signal','Signal',this.clientSignal),field('rmm-client-sort','Sort clients',this.clientSort),field('rmm-client-group','Group clients',this.clientGroup),
 			E('button',{type:'button','class':'btn',click:L.bind(function() { this.clientSearch.value='';this.clientBand.value='all';this.clientSignal.value='all';this.filterStations(); },this)},tr('Clear filters'))
 		]));
 		this.slots.wireless.appendChild(this.clientCount);
 		this.slots.wireless.appendChild(this.clientEmpty);
 
 		this.slots.wireless.appendChild(E('div',{'class':'rmm-dashboard-client-heading','aria-hidden':'true'},[
-			E('span',{},tr('Device')),E('span',{},tr('IP address')),E('span',{},tr('Band')),E('span',{},tr('Signal')),E('span',{},tr('Station details'))
+			E('span',{},tr('Device')),E('span',{},tr('IP address')),E('span',{},tr('Band')),E('span',{},tr('Signal')),E('span',{},tr('Link rate RX / TX')),E('span',{},tr('Station details'))
 		]));
 		this.slots.wireless.appendChild(this.wirelessContent);
 		this.update(root, data);
@@ -369,6 +437,7 @@ return view.extend({
 	},
 
 	update: function(root, data) {
+		var activeChart = document.activeElement && document.activeElement.getAttribute('data-chart-title');
 		var previousDevices = this.sources[5];
 		var previousInfo = this.sources[1];
 		var previousWireless = this.sources[6];
@@ -401,7 +470,7 @@ return view.extend({
 		var interfaces = sources[2].value || {}, services = sources[3].value || {}, config = sources[4].value || {};
 		var devices = sources[5].value || {};
 		var entries = Array.isArray(interfaces.interface) ? interfaces.interface.filter(function(e) { return e && typeof e.interface === 'string'; }) : [];
-		var wan = entries.filter(function(e) { return e.interface === 'wan' || e.interface === 'wan6'; });
+		var wan = entries.filter(function(e) { return e.interface === 'wan' || e.interface === 'wan6' || Array.isArray(e.route) && e.route.some(function(route) { return route && route.mask === 0 && (route.target === '0.0.0.0' || route.target === '::'); }); });
 		var agent = services['rmm-agent'];
 		var running = !!(agent && agent.instances && Object.keys(agent.instances).some(function(k) { return agent.instances[k] && agent.instances[k].running; }));
 		var used = finite(memory.total) && memory.total > 0 && finite(memory.available) && memory.available <= memory.total ? memory.total - memory.available : null;
@@ -487,14 +556,18 @@ return view.extend({
 				self.stationHistory[key] = {points:points,connected:fresh ? station.connected_time : previous && previous.connected,lastSeen:now};
 				var nodes = self.stationNodes[key];
 				if (!nodes) {
-					nodes = {root:E('div',{'class':'rmm-dashboard-station'}),title:E('span',{'class':'rmm-dashboard-client-name'}),address:E('span',{'class':'rmm-dashboard-client-address'}),band:E('span',{'class':'rmm-dashboard-client-band'}),signal:E('span',{'class':'rmm-dashboard-client-signal'}),metrics:E('dl',{}),summary:E('summary',{'aria-label':tr('Station details')}),body:E('div',{})};
+					nodes = {root:E('div',{'class':'rmm-dashboard-station'}),title:E('span',{'class':'rmm-dashboard-client-name'}),address:E('span',{'class':'rmm-dashboard-client-address'}),band:E('span',{'class':'rmm-dashboard-client-band'}),signal:E('span',{'class':'rmm-dashboard-client-signal'}),link:E('span',{'class':'rmm-dashboard-client-link'}),metrics:E('dl',{}),summary:E('summary',{'aria-label':tr('Station details')}),body:E('div',{})};
 					nodes.details = E('details',{'class':'rmm-dashboard-station-details'},[nodes.summary,nodes.body]);
-					nodes.summary.append(nodes.title,nodes.address,nodes.band,nodes.signal);nodes.root.appendChild(nodes.details);
+					nodes.summary.append(nodes.title,nodes.address,nodes.band,nodes.signal,nodes.link);
+					if (typeof self.detailDialog.showModal==='function') nodes.summary.setAttribute('aria-haspopup','dialog');nodes.root.appendChild(nodes.details);
+					nodes.summary.addEventListener('click',function(event) { if (self.openDetails('station/'+key,nodes.title.textContent,nodes.body,nodes.details,nodes.summary)) event.preventDefault(); });
 					self.stationNodes[key] = nodes;
 				}
 				nodes.title.textContent = host.name || mac;
 				nodes.address.textContent = host.addresses && host.addresses.length ? host.addresses.join(' / ') : tr('No local DHCP record');
 				nodes.band.textContent = bandName(info);
+				nodes.link.setAttribute('data-label',tr('Link rate RX / TX'));
+				nodes.link.textContent = linkRate(station.rx) + ' / ' + linkRate(station.tx);
 				nodes.signal.textContent = signalText(station.signal) + (sources[6].error || entry.stations.error ? ' · ' + tr('Stale') : '');
 				nodes.summary.setAttribute('aria-label',tr('Station details') + ': ' + nodes.title.textContent);
 				nodes.metrics.replaceChildren.apply(nodes.metrics,[item(tr('MAC address'),mac),item(tr('IP address'),host.addresses && host.addresses.length ? host.addresses.join(' / ') : tr('No local DHCP record')),
@@ -503,7 +576,7 @@ return view.extend({
 					item(tr('Interface'),entry.device),item(tr('Radio'),reportedText(info.phy)),item('SSID',reportedText(info.ssid)),item(tr('Band'),bandName(info)),
 					item(tr('Station noise'),signalText(station.noise)),item(tr('Station traffic'),tr('Unavailable'))
 				]),historyChart(tr('Signal history'),points.map(function(point) { return {at:point.at,used:point.signal === null ? null : point.signal + 127}; }),[{key:'used',label:tr('Signal')}],127,function(value) { return (value - 127).toFixed(0) + ' dBm'; },now));
-				self.clientRecords.push({node:nodes.root,band:bandName(info),signal:signalValue(station.signal),search:[host.name,mac,entry.device,info.ssid].concat(host.addresses || []).filter(function(value) { return typeof value === 'string'; }).join(' ').toLowerCase()});
+				self.clientRecords.push({key:key,name:nodes.title.textContent,ssid:reportedText(info.ssid),node:nodes.root,band:bandName(info),signal:signalValue(station.signal),rate:station.rx && finite(station.rx.rate) || station.tx && finite(station.tx.rate) ? Math.max(station.rx && finite(station.rx.rate) ? station.rx.rate : 0,station.tx && finite(station.tx.rate) ? station.tx.rate : 0) : null,search:[host.name,mac,entry.device,info.ssid].concat(host.addresses || []).filter(function(value) { return typeof value === 'string'; }).join(' ').toLowerCase()});
 				wirelessRows.push(nodes.root);
 			});
 			if (entry.stations.value && !entry.stations.value.results.length) wirelessRows.push(E('p',{'class':'rmm-dashboard-source'},tr('No associated stations')));
@@ -522,6 +595,7 @@ return view.extend({
 		Object.keys(this.stationHistory).sort(function(a,b) { return self.stationHistory[b].lastSeen - self.stationHistory[a].lastSeen; }).slice(256).forEach(function(key) { delete self.stationHistory[key]; });
 		Object.keys(this.radioNodes).forEach(function(key) { if (!seenRadios[key]) delete self.radioNodes[key]; });
 		this.radioContent.replaceChildren.apply(this.radioContent,radioRows.length ? radioRows : [E('p',{'class':'rmm-dashboard-source'},sources[6].error ? failure(sources[6].error) : tr('No wireless interfaces reported'))]);
+		this.stationMessages=wirelessRows.filter(function(row) { return !row.classList.contains('rmm-dashboard-station'); });
 		this.wirelessContent.replaceChildren.apply(this.wirelessContent,wirelessRows);
 		if (focused && focused.isConnected && (this.wirelessContent.contains(focused) || this.radioContent.contains(focused)) && typeof focused.focus === 'function') focused.focus();
 		this.filterStations();
@@ -533,13 +607,13 @@ return view.extend({
 			item(tr('Connectivity check interval'), sources[4].value ? (config.connectivity || '300') + ' ' + tr('s') : failure(sources[4].error))
 		]));
 		this.identity.textContent = reportedText(board.hostname) + ' · ' + reportedText(board.release && board.release.description) + ' · ' + tr('Uptime') + ': ' + formatDuration(info.uptime);
-		var wanStatus = !sources[2].value ? failure(sources[2].error) : !wan.length ? tr('Not configured') : wan.some(function(entry) { return entry.up === true; }) ? tr('Connected') : tr('Disconnected');
+		var wanStatus = !sources[2].value ? failure(sources[2].error) : !wan.length ? tr('Not configured') : wan.some(function(entry) { return entry.up === true; }) ? tr('Connected') : wan.every(function(entry) { return entry.up === false; }) ? tr('Disconnected') : tr('Unavailable');
 		var countKnown = !!sources[6].value && wireless.every(function(entry) { return !!entry.stations.value; });
 		var count = wireless.reduce(function(total,entry) { return total + stationList(entry.stations.value).length; },0);
 		function metric(label,value,description,indices) {
 			var bad = indices.some(function(index) { return !sourceFresh(sources[index],now); });
 			return E('div',{'class':'rmm-dashboard-metric'},[
-				E('span',{'class':'rmm-dashboard-metric-label'},tr(label)),E('strong',{'class':'rmm-dashboard-metric-value'},value),
+				E('span',{'class':'rmm-dashboard-metric-label'},[dashboardIcon(label === 'WAN connection' ? 'network' : label === 'Memory' ? 'terminal-2' : label === 'Wi-Fi clients' ? 'router' : 'activity-heartbeat'),E('span',{},tr(label))]),E('strong',{'class':'rmm-dashboard-metric-value'},value),
 				E('span',{'class':'rmm-dashboard-metric-description'},description),
 				bad ? E('span',{'class':'rmm-dashboard-warning'},indices.map(function(index) { return state(index); }).filter(function(value) { return value !== tr('Current'); }).join(' · ')) : null
 			]);
@@ -550,7 +624,7 @@ return view.extend({
 			metric('Load (1 / 5 / 15 min)',load,'load average',[1]),
 			metric('Wi-Fi clients',countKnown ? String(count) : tr('Unavailable'),tr('Interface') + ': ' + wireless.length + (wireless.some(function(entry) { return entry.info.error || entry.stations.error; }) ? ' · ' + tr('Partial data') : ''),[6])
 		);
-		this.agentSummary.replaceChildren(E('strong',{},tr('RMM agent')),E('span',{'class':running ? 'rmm-dashboard-ok' : 'rmm-dashboard-warning'},agentStatus),E('span',{},tr('Heartbeat interval') + ': ' + (sources[4].value ? (config.heartbeat || '30') + ' ' + tr('s') : failure(sources[4].error))),E('span',{'class':'rmm-dashboard-warning'},[3,4].filter(function(index) { return !sourceFresh(sources[index],now); }).map(state).join(' · ')));
+		this.agentSummary.replaceChildren(dashboardIcon('activity-heartbeat'),E('strong',{},tr('RMM agent')),E('span',{'class':running ? 'rmm-dashboard-ok' : 'rmm-dashboard-warning'},agentStatus),E('span',{},tr('Heartbeat interval') + ': ' + (sources[4].value ? (config.heartbeat || '30') + ' ' + tr('s') : failure(sources[4].error))),E('span',{'class':'rmm-dashboard-warning'},[3,4].filter(function(index) { return !sourceFresh(sources[index],now); }).map(state).join(' · ')));
 		var nestedErrors = wireless.some(function(entry) { return entry.info.error || entry.stations.error; });
 		var errors = sources.filter(function(s) { return s.error; }).length;
 		var cachedWirelessError = wireless.some(function(entry) { return entry.info.error && entry.info.value || entry.stations.error && entry.stations.value; });
@@ -558,65 +632,137 @@ return view.extend({
 		// Announce only state transitions, not every successful telemetry poll.
 		var statusText = tr(stateCode);
 		if (this.status.textContent !== statusText) this.status.textContent = statusText;
+		var issues=[];
+		if (used===null) issues.push(tr('Memory')+': '+tr('Unavailable'));
+		if (wanStatus!==tr('Connected')) issues.push(tr('WAN connection')+': '+wanStatus);
+		if (used!==null && memory.total>0 && used/memory.total>=.9) issues.push(tr('Memory usage ≥ 90%'));
+		if (!running && agentStatus!==tr('Disabled') && agentStatus!==tr('Not installed')) issues.push(tr('RMM agent')+': '+agentStatus);
+		if (stateCode!=='Current') {
+			var sourceNames=['system.board','system.info','network.interface.dump','service.list','uci rmm-agent','network.device.status','iwinfo.devices','luci-rpc.getDHCPLeases'];
+			sources.forEach(function(source,index) { if (!sourceFresh(source,now)) issues.push(sourceNames[index]+': '+(source.value ? tr('Stale')+' · ' : '')+(source.error ? failure(source.error) : tr('Data is not reported'))); });
+			if (nestedErrors || cachedWirelessError) issues.push(tr('Wireless')+': '+tr('Partial data'));
+		}
+		this.healthSummary.classList.toggle('rmm-dashboard-warning',issues.length>0);
+		this.healthSummary.replaceChildren(E('strong',{},tr(issues.length ? 'Attention required' : 'No reported issues')));
+		if (issues.length) this.healthSummary.appendChild(E('ul',{},issues.map(function(issue){return E('li',{},issue);})));
+		if (this.activeDetails) {
+			var selected=this.activeDetails, record=selected.key.indexOf('station/')===0 ? this.stationNodes[selected.key.slice(8)] : this.relationshipNodes[selected.key];
+			if (!record) this.detailContent.replaceChildren(E('p',{'class':'rmm-dashboard-warning'},tr('Object is no longer reported')));
+			else {
+				if (record.body!==selected.body) { selected.parent.appendChild(selected.body);selected.body=record.body;selected.parent=record.details || record.root;this.detailContent.replaceChildren(record.body); }
+				this.detailTitle.textContent=(record.label || record.title).textContent;
+			}
+		}
+		if (activeChart) Array.from((this.detailDialog.open ? this.detailDialog : root).querySelectorAll('svg[data-chart-title]')).some(function(svg) { if (svg.getAttribute('data-chart-title')!==activeChart) return false;svg.focus({preventScroll:true});return true; });
 	},
 
 	openStation: function(key) {
 		var nodes = this.stationNodes[key];
 		if (!nodes) return;
+		if (this.openDetails('station/'+key,nodes.title.textContent,nodes.body,nodes.details,document.activeElement)) return;
 		this.clientSearch.value = '';this.clientBand.value = 'all';this.clientSignal.value = 'all';this.filterStations();
 		nodes.details.setAttribute('open','');
 		if (typeof nodes.summary.focus === 'function') nodes.summary.focus();
 		if (typeof nodes.summary.scrollIntoView === 'function') nodes.summary.scrollIntoView({block:'nearest',behavior:'auto'});
 	},
 
+	openDetails: function(key,title,body,parent,invoker) {
+		if (typeof this.detailDialog.showModal !== 'function') return false;
+		var restore=this.activeDetails && this.activeDetails.invoker || invoker;
+		this.restoreDetails(false);
+		this.activeDetails={key:key,body:body,parent:parent,invoker:restore};
+		this.detailTitle.textContent=title;this.detailContent.replaceChildren(body);
+		if (!this.detailDialog.open) this.detailDialog.showModal();
+		this.detailClose.focus();
+		return true;
+	},
+	restoreDetails: function(focus) {
+		var selected=this.activeDetails;if (!selected) return;
+		selected.parent.appendChild(selected.body);this.activeDetails=null;
+		if (focus!==false) {
+			var invoker=selected.invoker && selected.invoker.isConnected ? selected.invoker : this.retry;
+			if (typeof invoker.focus==='function') invoker.focus({preventScroll:true});
+		}
+	},
+
 	renderRelationships: function() {
 		var self = this, sources = this.sources, board = sources[0].value || {}, focused = document.activeElement;
 		var interfaces = sources[2].value && sources[2].value.interface || [];
 		var wireless = sources[6].value && sources[6].value.interfaces || [];
-		var routes = [];
+		var seen = Object.create(null), gateways = [], local = [], radios = Object.create(null);
+		var metadata = [resultLine('system.board',sources[0]),resultLine('network.interface.dump',sources[2]),resultLine('iwinfo.devices',sources[6]),resultLine('luci-rpc.getDHCPLeases',sources[7])];
+		function state(result, parentError) {
+			var error = parentError || result.error;
+			return result.value && (error || !sourceFresh(result,Date.now())) ? tr('Stale') + (error ? ' · ' + failure(error) : '') : error ? failure(error) : tr('Current');
+		}
+		// Keep native disclosures and their summaries stable during telemetry polls.
+		function node(key, label, subtitle, content, status) {
+			var record = self.relationshipNodes[key];
+			if (!record) {
+				record = {root:E('details',{'class':'rmm-dashboard-path-node rmm-dashboard-path-' + (key === 'router' ? 'device' : key.indexOf('ssid/') === 0 ? 'ssid' : key === 'sources' ? 'sources' : 'interface')}),summary:E('summary',{}),label:E('span',{'class':'rmm-dashboard-topology-label'}),subtitle:E('span',{'class':'rmm-dashboard-path-subtitle'}),status:E('span',{'class':'rmm-dashboard-path-status'}),body:E('div',{'class':'rmm-dashboard-path-details'})};
+				record.summary.append(dashboardIcon(key === 'router' ? 'router' : key.indexOf('ssid/') === 0 ? 'layout-grid' : key === 'sources' ? 'terminal-2' : 'network'),record.label,record.subtitle,record.status);
+				record.root.append(record.summary,record.body);
+				if (key!=='sources' && typeof self.detailDialog.showModal==='function') record.summary.setAttribute('aria-haspopup','dialog');
+				if (key!=='sources') record.summary.addEventListener('click',function(event) { if (self.openDetails(key,record.label.textContent,record.body,record.root,record.summary)) event.preventDefault(); });
+				self.relationshipNodes[key] = record;
+			}
+			seen[key] = true;
+			record.label.textContent = label;
+			record.subtitle.textContent = subtitle;
+			record.status.textContent = status || '';
+			record.status.classList.toggle('rmm-dashboard-warning',!!status && (status.includes(tr('Stale')) || status.includes(tr('Unavailable')) || status.includes(tr('Access denied')) || status.includes(tr('Disconnected'))));
+			record.body.replaceChildren.apply(record.body,content);
+			return record.root;
+		}
 		interfaces.forEach(function(iface) {
-			if (!iface || typeof iface.interface !== 'string') return;
-			var gateways = (Array.isArray(iface.route) ? iface.route : []).filter(function(route) {
+			if (!iface || typeof iface.interface !== 'string' || iface.interface === 'loopback') return;
+			var next = (Array.isArray(iface.route) ? iface.route : []).filter(function(route) {
 				return route && route.mask === 0 && (route.target === '0.0.0.0' || route.target === '::') && typeof route.nexthop === 'string' && route.nexthop.length && route.nexthop !== '0.0.0.0' && route.nexthop !== '::';
 			}).map(function(route) { return route.nexthop; });
-			if (gateways.length || iface.interface === 'wan' || iface.interface === 'wan6') routes.push(E('li',{},[
-				E('span',{'class':'rmm-dashboard-topology-label'},tr('Interface') + ': ' + iface.interface),E('dl',{},[
-					item(tr('Device'),reportedText(iface.l3_device || iface.device)),item(tr('Status'),typeof iface.up === 'boolean' ? tr(iface.up ? 'Connected' : 'Disconnected') : tr('Unavailable')),
-					item(tr('Default route gateway'),gateways.length ? Array.from(new Set(gateways)).join(' / ') : tr('No default gateway reported'))
-				])
-			]));
+			var up = typeof iface.up === 'boolean' ? tr(iface.up ? 'Connected' : 'Disconnected') : tr('Unavailable');
+			var isUplink = next.length || iface.interface === 'wan' || iface.interface === 'wan6';
+			var label = isUplink ? tr('Gateway') + ' · ' + iface.interface : tr('Interface') + ': ' + iface.interface;
+			var details = [E('dl',{},[item(tr('Device'),reportedText(iface.l3_device || iface.device)),item(tr('Status'),up),item(tr('IP address'),firstAddress(iface))])];
+			if (isUplink) details.push(E('dl',{},[item(tr('Default route gateway'),next.length ? Array.from(new Set(next)).join(' / ') : tr('No default gateway reported'))]));
+			var gatewaysUnique=Array.from(new Set(next));
+			var entry = node('interface/' + iface.interface,label,isUplink ? next.length ? gatewaysUnique[0] + (gatewaysUnique.length>1 ? ' · +'+(gatewaysUnique.length-1) : '') : tr('No default gateway reported') : reportedText(iface.l3_device || iface.device),details,up + (state(sources[2]) !== tr('Current') ? ' · ' + state(sources[2]) : ''));
+			(isUplink ? gateways : local).push(E('li',{},entry));
 		});
-		var radios = Object.create(null);
 		wireless.forEach(function(entry) {
 			var info = entry.info.value || {}, phy = typeof info.phy === 'string' && info.phy.length ? info.phy : null;
 			var key = phy ? 'radio/' + phy : 'interface/' + entry.device;
-			if (!radios[key]) radios[key] = {phy:phy,interfaces:[]};
+			if (!radios[key]) radios[key] = {phy:phy,interfaces:[],bands:[]};
+			if (!radios[key].bands.includes(bandName(info))) radios[key].bands.push(bandName(info));
 			var mode = info.mode === 'Master' ? tr('Access point') : info.mode === 'Client' ? tr('Station mode') : reportedText(info.mode);
 			var stations = stationList(entry.stations.value).map(function(station) {
 				var nodes = self.stationNodes[entry.device + '/' + station.mac.toUpperCase()];
 				if (!nodes) return null;
 				if (!nodes.topologyButton) nodes.topologyButton = E('button',{type:'button','class':'btn',click:L.bind(function() { this.openStation(entry.device + '/' + station.mac.toUpperCase()); },self)});
-				nodes.topologyButton.textContent = nodes.title.textContent + ' · ' + station.mac.toUpperCase();
+				nodes.topologyButton.textContent = nodes.title.textContent;
 				nodes.topologyButton.setAttribute('aria-label',tr('Open station details') + ': ' + nodes.title.textContent + ' · ' + station.mac.toUpperCase());
 				return E('li',{},nodes.topologyButton);
 			}).filter(Boolean);
-			radios[key].interfaces.push(E('li',{},[
-				E('span',{'class':'rmm-dashboard-topology-label'},'SSID: ' + reportedText(info.ssid)),
-				E('dl',{},[item(tr('Interface'),entry.device),item(tr('Band'),bandName(info)),item(tr('Operating mode'),mode)]),
-				resultLine('iwinfo.info',entry.info,sources[6].error),resultLine('iwinfo.assoclist',entry.stations,sources[6].error),
-				stations.length ? E('ul',{},stations) : E('p',{'class':'rmm-dashboard-source'},entry.stations.error && !entry.stations.value ? failure(entry.stations.error) : entry.stations.value && entry.stations.value.results.length === 0 ? tr('No associated stations') : tr('Unavailable'))
-			]));
+			var contents = [E('dl',{},[item(tr('Interface'),entry.device),item(tr('Band'),bandName(info)),item(tr('Operating mode'),mode),item(tr('Channel'),finite(info.channel) && info.channel > 0 ? String(info.channel) : tr('Unavailable'))]),
+				stations.length ? E('ul',{'class':'rmm-dashboard-path-clients'},stations) : E('p',{'class':'rmm-dashboard-source'},entry.stations.error && !entry.stations.value ? failure(entry.stations.error) : entry.stations.value && entry.stations.value.results.length === 0 ? tr('No associated stations') : tr('Unavailable'))];
+			var subtitle = bandName(info) + ' · ' + (entry.stations.value ? String(stations.length) + ' · ' + tr('Wi-Fi clients') : failure(entry.stations.error));
+			radios[key].interfaces.push(E('li',{},node('ssid/' + entry.device,reportedText(info.ssid),subtitle,contents,Array.from(new Set([state(entry.info,sources[6].error),state(entry.stations,sources[6].error)])).filter(function(value) { return value !== tr('Current'); }).join(' · '))));
+			metadata.push(resultLine('iwinfo.info',entry.info,sources[6].error),resultLine('iwinfo.assoclist',entry.stations,sources[6].error));
 		});
-		var radioRows = Object.keys(radios).map(function(key) { return E('li',{},[E('span',{'class':'rmm-dashboard-topology-label'},tr('Radio') + ': ' + reportedText(radios[key].phy)),E('ul',{},radios[key].interfaces)]); });
+		var radioRows = Object.keys(radios).map(function(key) { return E('li',{'class':'rmm-dashboard-path-radio'},[E('div',{'class':'rmm-dashboard-path-radio-node'},[dashboardIcon('router'),E('h3',{'class':'rmm-dashboard-topology-label'},tr('Radio') + ': ' + reportedText(radios[key].phy)),E('span',{'class':'rmm-dashboard-path-subtitle'},radios[key].bands.join(' / '))]),E('ul',{'class':'rmm-dashboard-path-list'},radios[key].interfaces)]); });
+		var router = node('router',reportedText(board.hostname),reportedText(board.model),[E('dl',{},[item(tr('Firmware'),reportedText(board.release && board.release.description)),item(tr('Uptime'),formatDuration(sources[1].value && sources[1].value.uptime))])],Array.from(new Set([state(sources[0]),state(sources[1])])).filter(function(value) { return value !== tr('Current'); }).join(' · '));
+		var sourceRecord = node('sources',tr('Sources'),'',[E('p',{'class':'rmm-dashboard-source'},tr('Only reported routes and Wi-Fi associations are shown; physical cabling and Internet reachability are not inferred.'))].concat(metadata));
 		this.slots.topology.replaceChildren(
-			E('p',{'class':'rmm-dashboard-source'},tr('Only reported routes and Wi-Fi associations are shown; physical cabling and Internet reachability are not inferred.')),
-			resultLine('system.board',sources[0]),resultLine('network.interface.dump',sources[2]),resultLine('iwinfo.devices',sources[6]),resultLine('luci-rpc.getDHCPLeases',sources[7]),
-			E('ul',{'class':'rmm-dashboard-topology'},[E('li',{},[
-				E('span',{'class':'rmm-dashboard-topology-label'},tr('Local router') + ': ' + reportedText(board.hostname)),
-				routes.length ? E('ul',{},routes) : E('p',{'class':'rmm-dashboard-source'},sources[2].error && !sources[2].value ? failure(sources[2].error) : tr('No default gateway reported')),
-				radioRows.length ? E('ul',{},radioRows) : E('p',{'class':'rmm-dashboard-source'},sources[6].error && !sources[6].value ? failure(sources[6].error) : tr('No wireless interfaces reported'))
-			])])
+			E('p',{'class':'rmm-dashboard-path-caption'},tr('Logical interfaces and Wi-Fi associations')),
+			E('div',{'class':'rmm-dashboard-path','role':'group','aria-label':tr('Reported network path')},[
+				E('section',{'class':'rmm-dashboard-path-uplink'},[E('h3',{},tr('Gateway')),gateways.length ? E('ul',{'class':'rmm-dashboard-path-list'},gateways) : E('p',{'class':'rmm-dashboard-source'},sources[2].error ? failure(sources[2].error) : tr('No default gateway reported'))]),
+				E('section',{'class':'rmm-dashboard-path-router'},router),
+				E('section',{'class':'rmm-dashboard-path-branches'},[
+					local.length ? E('div',{},[E('h3',{},tr('Local interfaces')),E('ul',{'class':'rmm-dashboard-path-list'},local)]) : null,
+					radioRows.length ? E('ul',{'class':'rmm-dashboard-path-list'},radioRows) : E('p',{'class':'rmm-dashboard-source'},sources[6].error ? failure(sources[6].error) : tr('No wireless interfaces reported'))
+				])
+			]),sourceRecord
 		);
+		Object.keys(this.relationshipNodes).forEach(function(key) { if (!seen[key]) delete self.relationshipNodes[key]; });
 		if (focused && focused.isConnected && this.slots.topology.contains(focused) && typeof focused.focus === 'function') focused.focus();
 	},
 
@@ -628,6 +774,23 @@ return view.extend({
 			var visible = (!query || record.search.includes(query)) && (band === 'all' || record.band === band) && matchesSignal;
 			record.node.hidden = !visible;if (visible) shown++;
 		});
+		var focus=document.activeElement, order=this.clientSort.value || 'name', group=this.clientGroup.value==='ssid';
+		var sorted=records.slice().sort(function(a,b) {
+			if (group && a.ssid!==b.ssid) return a.ssid.localeCompare(b.ssid);
+			if (order==='signal' || order==='rate') {
+				var av=a[order],bv=b[order];
+				if (av===null && bv!==null) return 1;if (bv===null && av!==null) return -1;
+				if (av!==null && bv!==null && av!==bv) return bv-av;
+			}
+			return a.name.localeCompare(b.name) || a.key.localeCompare(b.key);
+		});
+		var rows=[],previous=null;
+		sorted.forEach(function(record) {
+			if (group && !record.node.hidden && previous!==record.ssid) { rows.push(E('h3',{'class':'rmm-dashboard-client-group'},'SSID · '+record.ssid));previous=record.ssid; }
+			rows.push(record.node);
+		});
+		this.wirelessContent.replaceChildren.apply(this.wirelessContent,rows.concat(this.stationMessages || []));
+		if (focus && focus.isConnected && this.wirelessContent.contains(focus) && typeof focus.focus==='function') focus.focus({preventScroll:true});
 		var count = tr('Shown / total stations') + ': ' + shown + ' / ' + records.length;
 		if (this.clientCount.textContent !== count) this.clientCount.textContent = count;
 		this.clientEmpty.hidden = shown > 0 || records.length === 0;

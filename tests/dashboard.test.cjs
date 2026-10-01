@@ -44,7 +44,7 @@ function snapshot(at=100000, overrides={}) {
 
 test('system, network and agent show real metrics, timestamps and 30-second polling',()=>{
   const f=fixture(); const root=f.view.render(snapshot());
-  assert.equal(root.querySelectorAll('section').length,3);
+  assert.equal(root.querySelectorAll(':scope > section').length,5);
   assert.match(root.textContent,/75.0 MiB \(75.0%\)/);
   assert.match(root.textContent,/192.0.2.1/);
   assert.match(root.textContent,/600 с/);
@@ -354,4 +354,106 @@ test('radio disclosure and summary identities survive polling without losing ope
  assert.ok(radio.hasAttribute('open'));
  f.time(160000);f.view.update(root,snapshot(160000));
  assert.equal(Object.keys(f.view.radioNodes).length,0);
+});
+
+test('compact path preserves native node state, omits loopback and never invents wired clients',()=>{
+ const f=fixture(), data=wirelessSnapshot();
+ data[2].value.interface.push({interface:'lan',l3_device:'br-lan',up:true},{interface:'loopback',l3_device:'lo',up:true});
+ const root=f.view.render(data), key='ssid/phy0-ap0';
+ const node=f.view.relationshipNodes[key], summary=node.summary;
+ node.root.setAttribute('open','');
+ f.time(130000);f.view.update(root,data.map(entry=>({...entry,at:130000})));
+ assert.equal(f.view.relationshipNodes[key].root,node.root);
+ assert.equal(f.view.relationshipNodes[key].summary,summary);
+ assert.ok(node.root.hasAttribute('open'));
+ assert.match(f.view.slots.topology.textContent,/Локальные интерфейсы/);
+ assert.match(f.view.slots.topology.textContent,/br-lan/);
+ assert.doesNotMatch(f.view.slots.topology.textContent,/loopback|Ethernet clients|Проводные клиенты/);
+ assert.equal(f.view.relationshipNodes.sources.root.hasAttribute('open'),false);
+ assert.equal(f.calls.length,0);assert.equal(f.polls.length,1);
+ f.time(160000);f.view.update(root,snapshot(160000));
+ assert.equal(f.view.relationshipNodes[key],undefined);
+});
+test('gateway failure and missing station lists remain explicit on compact node summaries',()=>{
+ const f=fixture(),root=f.view.render(wirelessSnapshot());
+ f.time(130000);f.view.update(root,wirelessSnapshot(130000,undefined,{code:6}));
+ assert.match(f.view.relationshipNodes['ssid/phy0-ap0'].summary.textContent,/Устаревшие данные · Нет доступа/);
+ const data=wirelessSnapshot(160000);data[2]={error:{code:6}};
+ f.time(160000);f.view.update(root,data);
+ assert.match(f.view.slots.topology.querySelector('.rmm-dashboard-path-uplink').textContent,/Устаревшие данные · Нет доступа/);
+ assert.equal(f.view.relationshipNodes['ssid/phy0-ap0'].root.hasAttribute('open'),false);
+});
+
+
+test('sorting and SSID grouping retain station identities and put unknown rates last',()=>{
+ const f=fixture(),data=wirelessSnapshot();
+ data[6].value.interfaces[0].stations.value.results.push({mac:'AA:BB:CC:DD:EE:02',signal:-40,rx:{rate:1440000},tx:{rate:720000}});
+ const root=f.view.render(data),nodes=f.view.clientRecords.map(record=>record.node);
+ f.view.clientSort.value='signal';f.view.filterStations();
+ assert.ok(f.view.wirelessContent.querySelector('.rmm-dashboard-station')===nodes[1]);
+ f.view.clientSort.value='rate';f.view.filterStations();
+ assert.ok(f.view.wirelessContent.querySelector('.rmm-dashboard-station')===nodes[1]);
+ f.view.clientGroup.value='ssid';f.view.filterStations();
+ assert.equal(f.view.wirelessContent.querySelectorAll('.rmm-dashboard-client-group').length,1);
+ f.time(130000);f.view.update(root,data.map(entry=>({...entry,at:130000})));
+ assert.equal(f.view.clientSort.value,'rate');assert.equal(f.view.clientGroup.value,'ssid');
+ assert.ok(f.view.wirelessContent.querySelector('.rmm-dashboard-station')===nodes[1]);
+ assert.equal(f.calls.length,0);
+});
+
+test('native inspector retains live details and restores the invoking control',()=>{
+ const f=fixture(),root=f.view.render(wirelessSnapshot());f.document.body.append(root);
+ const dialog=f.view.detailDialog;
+ Object.defineProperty(dialog,'open',{get(){return this.hasAttribute('open');}});
+ dialog.showModal=function(){this.setAttribute('open','');};
+ dialog.close=function(){this.removeAttribute('open');this.dispatchEvent(new f.document.defaultView.Event('close'));};
+ let restored=false;
+ const node=f.view.relationshipNodes.router;node.summary.focus=()=>{restored=true;};f.view.detailClose.focus=()=>{};
+ node.summary.click();assert.equal(dialog.open,true);assert.ok(node.body.parentNode===f.view.detailContent);
+ f.time(130000);f.view.update(root,snapshot(130000));
+ assert.ok(node.body.parentNode===f.view.detailContent);assert.match(node.body.textContent,/OpenWrt/);
+ dialog.close();assert.ok(node.body.parentNode===node.root);assert.equal(restored,true);
+ const data=wirelessSnapshot(160000);f.time(160000);f.view.update(root,data);
+ const key=Object.keys(f.view.stationNodes)[0];f.view.openStation(key);
+ f.time(190000);f.view.update(root,snapshot(190000));
+ assert.match(f.view.detailContent.textContent,/Объект больше не указан/);dialog.close();
+ assert.equal(f.calls.length,0);
+});
+
+test('sample inspection exposes unavailable measurements and keyboard navigation',()=>{
+ const f=fixture(),root=f.view.render(snapshot());
+ f.time(130000);f.view.update(root,snapshot(130000,{1:{error:{code:6}}}));
+ const svg=f.view.memoryChart.querySelector('svg');
+ const end=new f.document.defaultView.Event('keydown');Object.defineProperty(end,'key',{value:'End'});svg.dispatchEvent(end);
+ assert.match(f.view.memoryChart.querySelector('.rmm-dashboard-chart-readout').textContent,/Данные не получены/);
+ const home=new f.document.defaultView.Event('keydown');Object.defineProperty(home,'key',{value:'Home'});svg.dispatchEvent(home);
+ assert.match(f.view.memoryChart.querySelector('.rmm-dashboard-chart-readout').textContent,/75.0%/);
+ assert.equal(svg.getAttribute('tabindex'),'0');
+ assert.equal(f.calls.length,0);
+});
+
+test('health summary names offline WAN, high memory and stopped agent without connectivity probes',()=>{
+ const f=fixture(),data=snapshot();data[2].value.interface[0].up=false;
+ data[1].value.memory.available=1048576;data[3].value['rmm-agent'].instances.main.running=false;
+ const root=f.view.render(data);
+ assert.match(f.view.healthSummary.textContent,/WAN.*Отключено/);
+ assert.match(f.view.healthSummary.textContent,/Занято памяти ≥ 90%/);
+ assert.match(f.view.healthSummary.textContent,/Агент RMM.*Остановлен/);
+ assert.equal(f.calls.length,0);assert.equal(f.polls.length,1);
+ f.time(130000);f.view.update(root,snapshot(130000));
+ assert.match(f.view.healthSummary.textContent,/По полученным данным проблем нет/);
+ assert.doesNotMatch(f.view.healthSummary.textContent,/null/);
+});
+
+
+test('multi-WAN and long names expose every route without asserting unknown link health',()=>{
+ const f=fixture(),data=wirelessSnapshot();
+ data[2].value.interface=[{interface:'wan-primary-long-name',l3_device:'eth0',route:[{target:'0.0.0.0',mask:0,nexthop:'192.0.2.254'},{target:'::',mask:0,nexthop:'2001:db8:1234:5678:abcd:ef01:2345:6789'}]},{interface:'wan6',up:false,l3_device:'eth1',route:[{target:'::',mask:0,nexthop:'2001:db8::1'}]}];
+ const root=f.view.render(data);
+ assert.equal(f.view.slots.topology.querySelectorAll('.rmm-dashboard-path-uplink .rmm-dashboard-path-node').length,2);
+ assert.match(f.view.relationshipNodes['interface/wan-primary-long-name'].body.textContent,/2001:db8:1234/);
+ assert.match(f.view.relationshipNodes['interface/wan-primary-long-name'].subtitle.textContent,/192.0.2.254 · \+1/);
+ assert.match(f.view.overview.textContent,/Недоступно/);
+ assert.match(f.view.healthSummary.textContent,/WAN.*Недоступно/);
+ assert.equal(f.calls.length,0);
 });

@@ -340,3 +340,72 @@ msgstr "Устройство WAN не указано"
 
 msgid "Summary"
 msgstr "Сводка"
+
+msgid "Gateway"
+msgstr "Шлюз"
+
+msgid "Local interfaces"
+msgstr "Локальные интерфейсы"
+
+msgid "Reported network path"
+msgstr "Связи по данным роутера"
+
+msgid "Logical interfaces and Wi-Fi associations"
+msgstr "Логические интерфейсы и подключения Wi-Fi"
+
+msgid "Close"
+msgstr "Закрыть"
+
+msgid "Details"
+msgstr "Подробности"
+
+msgid "Sort clients"
+msgstr "Сортировка"
+
+msgid "By name"
+msgstr "По имени"
+
+msgid "Strongest signal"
+msgstr "Сначала сильный сигнал"
+
+msgid "Fastest link"
+msgstr "Сначала быстрое соединение"
+
+msgid "Group clients"
+msgstr "Группировка"
+
+msgid "No grouping"
+msgstr "Без группировки"
+
+msgid "By SSID"
+msgstr "По SSID"
+
+msgid "Received"
+msgstr "Принято"
+
+msgid "Sent"
+msgstr "Отправлено"
+
+msgid "Inspect samples with arrow keys"
+msgstr "Выбирайте измерения стрелками"
+
+msgid "Data is not reported"
+msgstr "Данные не получены"
+
+msgid "Attention required"
+msgstr "Требует внимания"
+
+msgid "No reported issues"
+msgstr "По полученным данным проблем нет"
+
+msgid "Memory usage ≥ 90%"
+msgstr "Занято памяти ≥ 90%"
+
+msgid "Object is no longer reported"
+msgstr "Объект больше не указан в данных"
+
+msgid "Refresh issues"
+msgstr "Проблемы обновления"
+
+msgid "Resource summary"
+msgstr "Состояние ресурсов"

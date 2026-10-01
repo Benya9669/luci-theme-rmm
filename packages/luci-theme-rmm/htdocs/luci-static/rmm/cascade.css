@@ -119,6 +119,9 @@ hr { border-top: 1px solid var(--rmm-border); }
 .cbi-section { padding: 12px; margin-bottom: 16px; }
 .cbi-section legend, .cbi-section > h3 { color: var(--rmm-text); }
 .cbi-value, .cbi-section-table-row, .tr { border-color: var(--rmm-border); }
+.cbi-value { padding-top: 8px; padding-bottom: 8px; }
+.cbi-value-description { margin-top: 6px; font-size: 12px; color: var(--rmm-muted); }
+.cbi-value-error { color: var(--error-color-high); }
 .cbi-rowstyle-2, .tr.table-titles, .tr.cbi-section-table-titles { background: var(--rmm-surface-2); }
 .cbi-section-table .tr:hover .td, .cbi-section-table .tr:hover .th,
 .cbi-section-table .tr:hover::before { background: var(--rmm-surface-3); }
@@ -130,8 +133,13 @@ input:not([type="checkbox"]):not([type="radio"]), textarea, select,
 	color: var(--rmm-text);
 	box-shadow: none;
 }
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select { min-height: var(--rmm-control-default); }
+textarea { min-height: 96px; max-width: 100%; resize: vertical; }
+button:disabled, input:disabled, select:disabled, textarea:disabled { opacity: .65; cursor: not-allowed; }
+.cbi-page-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cbi-page-actions > .cbi-button { float: none; margin: 0; min-height: var(--rmm-control-default); }
 input:focus, button:focus-visible, textarea:focus, select:focus,
-.btn:focus-visible, .cbi-button:focus-visible, a:focus-visible {
+.btn:focus-visible, .cbi-button:focus-visible, a:focus-visible, summary:focus-visible {
 	outline: 2px solid var(--rmm-accent-hover);
 	outline-offset: 2px;
 	box-shadow: none;
@@ -144,6 +152,7 @@ input:focus, button:focus-visible, textarea:focus, select:focus,
 	text-shadow: none;
 	color: var(--rmm-text);
 }
+.btn:focus, .cbi-button:focus, button:focus { box-shadow: none; }
 .btn:hover, .cbi-button:hover, button:hover { background: var(--rmm-surface-3); box-shadow: none; }
 .btn.primary, .cbi-button-action.important,
 .cbi-page-actions .cbi-button-apply, .cbi-section-actions .cbi-button-edit,
@@ -193,6 +202,7 @@ body:has(> section[hidden]) .modal { background: var(--rmm-surface); border: 1px
 	background: var(--rmm-surface);
 	border-bottom: 1px solid var(--rmm-border-strong);
 }
+.tabs > li.active > a, .cbi-tabmenu > .cbi-tab > a { color: var(--rmm-text); background: var(--rmm-surface-2); border-bottom: 2px solid var(--rmm-accent); }
 .tabs > li, .cbi-tabmenu > li { float: none; flex: 0 0 auto; height: auto; }
 .tabs > li > a, .cbi-tabmenu > li > a { display: flex; align-items: center; min-height: var(--rmm-control-default); }
 .tabs > li:not(.active), .cbi-tabmenu > .cbi-tab-disabled,
@@ -316,6 +326,7 @@ pre, #syslog, .command-output, .uci-change-list {
 		padding: 6px 8px;
 		border-top: 0;
 		white-space: normal;
+		text-align: left;
 		overflow: visible;
 	}
 	.rmm-records .rmm-record-row > [data-rmm-label]:not([data-rmm-label=""])::before {

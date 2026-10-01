@@ -178,6 +178,59 @@ The overview prioritizes WAN link, memory, load average, Wi-Fi client count and
 agent service state. Compact WAN/memory histories precede radio and client lists.
 On phones, memory history starts collapsed; opening and closing disclosures is
 local UI state. Radio and station disclosures retain their state across polling.
-Detailed router/interface metrics, relationships and timestamps remain in native
+Detailed router/interface metrics and timestamps remain in native
 disclosures. Source errors and cached/stale values stay explicit. Polling and
 read-only ACLs are unchanged. See [release notes](docs/release-0.6.0.md).
+
+## Dashboard interactions (0.7.0)
+
+The Vantage-inspired network overview is visible below the summary: reported
+WAN gateways, router, local interfaces, radios and SSIDs. It uses RMM tokens and
+local Tabler icons, with the MIT license shipped in the dashboard package.
+Multiple uplinks are kept separate. Long gateway lists show the first address
+and a count; the full reported list remains available in details. The diagram
+stacks below 1100 px, and radio/SSID branches stack below 481 px.
+
+Click a network node or client to open the shared native details dialog. It
+uses the same snapshot, retains working client actions, and updates while open.
+Escape/Close restores focus. If an object disappears, the dialog explicitly
+replaces its values with an unavailable message. Browsers without native modal
+dialog support retain the inline details fallback. Source timestamps remain
+in a separate disclosure. No physical cables, wired clients or Internet health
+are inferred.
+
+Client filters combine search, band and signal. Sorting uses name, signal or
+reported negotiated Wi-Fi link rate; missing values sort last. Optional SSID
+grouping keeps different bands visible in each row. Sorting, grouping and
+filters survive polling within the current page and are not stored on the
+router. Negotiated link rate is not measured traffic.
+
+WAN charts show RX/TX labels and distinct solid/dashed lines. Move the pointer
+over a chart or focus it and use Left/Right/Home/End to inspect recorded
+samples. Missing values are explicit; lines do not bridge unavailable data,
+long polling gaps, counter resets or restarts. History remains bounded to five
+minutes in this browser view. Refresh preserves chart focus.
+
+The status summary names disconnected/unknown WAN, memory usage at least 90%,
+an unexpectedly stopped agent, and failed/stale sources. Disabled or absent
+agent services stay visible in the existing agent summary. Load average remains
+a load average; it is not converted into CPU utilization or a health score.
+
+Common LuCI inputs, disabled states, validation messages, tabs, action rows and
+mobile table labels share the theme styling. Save/Apply and existing LuCI event
+handlers are retained. Changes introduce no new RPC methods, probes, writes,
+timers or router configuration.
+
+### Upgrade and verify
+
+Install matching theme, dashboard and translation packages from the signed
+shared feed or this [release](https://github.com/Benya9669/luci-theme-rmm/releases/tag/luci-v0.7.0),
+then reload LuCI. No data migration is required. Run npm test for local checks;
+package builds run in GitHub Actions using the locked 24.10.7 IPK and 25.12.4 APK
+SDKs. See [release notes](docs/release-0.7.0.md).
+
+Check /admin/dashboard at 320, 390, 768, 1100, 1440 and 1920 px. Open a node,
+follow an SSID client action, close with Escape, sort/group clients, and inspect
+a graph with the keyboard. Confirm controls and selection remain usable after
+the next 30-second poll. View system/network pages to check labels, tabs and
+Save visibility; changing router settings is not required for verification.
