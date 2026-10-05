@@ -230,7 +230,7 @@ test('missing wireless RPC and malformed stations remain explicit without report
 });
 test('Wi-Fi ACL permits only the required read methods and local DHCP leases',()=>{
  const acl=JSON.parse(fs.readFileSync('packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json','utf8'));
- const entry=Object.values(acl)[0];assert.equal(entry.write,undefined);
+ const entry=Object.values(acl)[0];assert.deepEqual(entry.write,{ubus:{'rmm.dashboard':['set_name']}});assert.deepEqual(entry.read.ubus['network.rrdns'],['lookup']);
  assert.deepEqual(entry.read.ubus.iwinfo,['devices','info','assoclist']);assert.deepEqual(entry.read.ubus['luci-rpc'],['getDHCPLeases']);
  assert.deepEqual(entry.read.uci,['rmm-agent']);
 });
@@ -307,7 +307,7 @@ test('relationship failures retain source states and recovery removes disconnect
  f.time(130000);f.view.update(root,snapshot(130000,{6:{error:{code:6}}}));
  assert.match(f.view.slots.topology.textContent,/iwinfo.devices: Устаревшие данные · Нет доступа/);
  assert.match(f.view.slots.topology.textContent,/iwinfo.assoclist: Устаревшие данные · Нет доступа/);
- assert.equal(f.view.slots.topology.querySelectorAll('button').length,1);
+ assert.equal(f.view.slots.topology.querySelectorAll('button').length,2);
  f.time(160000);f.view.update(root,snapshot(160000));assert.equal(f.view.slots.topology.querySelectorAll('button').length,0);
  assert.match(f.view.slots.topology.textContent,/Шлюз по умолчанию не указан/);
  assert.match(f.view.slots.topology.textContent,/Беспроводные интерфейсы не найдены/);
@@ -511,7 +511,7 @@ test('FDB merges DHCP and ARP/NDP with conservative status, stable nodes and por
  const f=fixture(),data=lanSnapshot({fdb:[{mac:'02:00:00:00:00:09',bridge:'br-lan',port:'lan2',vlan:10,link_up:true}],neighbors:[{mac:'02:00:00:00:00:09',device:'br-lan',address:'192.0.2.9',state:'stale'},{mac:'02:00:00:00:00:09',device:'br-lan',address:'2001:db8::9',state:'reachable'}]});
  data[7].value.dhcp_leases=[{macaddr:'02:00:00:00:00:09',hostname:'Desktop',ipaddr:'192.0.2.9'}];
  const root=f.view.render(data),node=f.view.knownNodes['dhcp/02:00:00:00:00:09'];
- assert.equal(f.view.clientRecords.length,1);assert.equal(f.view.clientRecords[0].type,'wired');assert.equal(node.title.textContent,'Desktop');assert.equal(node.link.textContent,'Через lan2');assert.equal(node.signal.textContent,'Недавно доступен');assert.equal(node.address.textContent,'192.0.2.9 / 2001:db8::9');assert.match(node.body.textContent,/прямое подключение кабелем не подтверждено/);
+ assert.equal(f.view.clientRecords.length,1);assert.equal(f.view.clientRecords[0].type,'wired');assert.equal(node.title.textContent,'Desktop');assert.equal(node.link.textContent,'Через lan2');assert.equal(node.signal.textContent,'Недавно доступен');assert.equal(node.address.textContent,'192.0.2.9 · +1 IP');assert.match(node.body.textContent,/прямое подключение кабелем не подтверждено/);
  f.view.clientType.value='wired';f.view.filterStations();assert.equal(node.root.hidden,false);f.view.clientSearch.value='lan2';f.view.filterStations();assert.equal(node.root.hidden,false);
  f.time(130000);f.view.update(root,lanSnapshot({},130000).map((source,index)=>index===8?{error:{code:6}}:source));assert.equal(f.view.knownNodes['dhcp/02:00:00:00:00:09'],node);assert.equal(node.signal.textContent,'Устаревшие данные');
 });
@@ -526,7 +526,7 @@ test('Wi-Fi association takes priority over matching Ethernet FDB and gets neigh
 });
 test('passive inventory RPC deduplicates refresh, reports errors and has read-only ACL',async()=>{
  const f=fixture();f.replies['rmm.dashboard.clients']={fdb:[],neighbors:[]};await Promise.all([f.view.load(),f.view.load()]);assert.equal(f.calls.filter(call=>call[0]==='rmm.dashboard').length,1);f.replies['rmm.dashboard.clients']={error:'Kernel table unavailable'};const next=await f.view.load();assert.ok(next[8].error);
- const acl=JSON.parse(fs.readFileSync('packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json','utf8'))['luci-app-rmm-dashboard'];assert.deepEqual(acl.read.ubus['rmm.dashboard'],['clients']);assert.equal(acl.write,undefined);
+ const acl=JSON.parse(fs.readFileSync('packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json','utf8'))['luci-app-rmm-dashboard'];assert.deepEqual(acl.read.ubus['rmm.dashboard'],['clients','vendors']);assert.deepEqual(acl.write,{ubus:{'rmm.dashboard':['set_name']}});assert.equal(acl.write.uci,undefined);
 });
 
 test('FDB VLAN observations only match the explicit local VLAN and exclude routed uplinks',()=>{
@@ -562,4 +562,186 @@ test('connector bus uses visible card bounds and integer edge anchors, excluding
  assert.ok(lines.includes('340,100 340,116 820,116'));
  assert.ok(lines.includes('580,100 580,116'));
  assert.ok(lines.includes('200,50 220,50 220,50 240,50'));
+});
+test('DHCPv6 without MAC matches an exact fresh NDP address, normalizes IPv6 and exposes name evidence',()=>{
+ const f=fixture(),mac='02:00:00:00:00:09',data=lanSnapshot({neighbors:[{mac,device:'br-lan',address:'2001:db8::9',state:'reachable'}]});
+ data[7].value.dhcp6_leases=[{duid:'000400000000000000000000000000000009',hostname:'IPv6 <NAS>',ip6addr:'2001:0DB8:0:0:0:0:0:9',ip6addrs:['2001:db8::9/128','2001:db8::10/64','not-an-address']}];
+ const root=f.view.render(data),node=f.view.knownNodes['dhcp/'+mac];
+ assert.equal(f.view.clientRecords.length,1);assert.equal(node.title.textContent,'IPv6 <NAS>');
+ assert.equal(node.address.textContent,'2001:0DB8:0:0:0:0:0:9 · +1 IP');
+ assert.match(node.body.textContent,/DHCPv6/);assert.match(node.body.textContent,/IPv6-запись NDP/);
+ assert.doesNotMatch(node.body.textContent,/not-an-address/);assert.equal(node.root.querySelector('NAS'),null);
+ f.view.clientSearch.value='2001:db8::10';f.view.filterStations();assert.equal(node.root.hidden,false);
+ f.view.clientSearch.value='2001:db8::9';f.view.filterStations();assert.equal(node.root.hidden,false);
+ f.time(130000);f.view.update(root,data.map((entry,i)=>i===8?{error:{code:6}}:{...entry,at:130000}));
+ assert.equal(f.view.knownNodes['dhcp/'+mac],node);assert.equal(node.title.textContent,mac);
+ assert.equal(f.calls.length,0);
+});
+test('same-MAC DHCPv4/v6 and NDP keep one client, prefer the DHCPv4 name and retain all IPs in details',()=>{
+ const f=fixture(),mac='02:00:00:00:00:09',data=lanSnapshot({neighbors:[{mac,device:'br-lan',address:'fe80::9',state:'stale'}]});
+ data[7].value.dhcp_leases=[{macaddr:mac,hostname:'Desktop',ipaddr:'192.0.2.9'}];
+ data[7].value.dhcp6_leases=[{macaddr:mac,hostname:'Other-name',ip6addr:'2001:db8::9/64',ip6addrs:['2001:0db8:0000:0000:0000:0000:0000:0009']}];
+ f.view.render(data);const node=f.view.knownNodes['dhcp/'+mac];assert.equal(f.view.clientRecords.length,1);
+ assert.equal(node.title.textContent,'Desktop');assert.equal(node.address.textContent,'192.0.2.9 · +2 IP');
+ assert.equal(node.address.title,'192.0.2.9 / 2001:db8::9 / fe80::9');assert.match(node.body.textContent,/DHCPv4/);
+});
+test('DHCPv6 matching refuses ambiguous IPv6 owners, cached neighbors, stale sources and unknown DUID guesses',()=>{
+ for(const mode of ['ambiguous','cached','stale-lease','stale-inventory','stale-interface','unknown']) {
+  const f=fixture(),mac='02:00:00:00:00:09',neighbors=[{mac,device:'br-lan',address:'2001:db8::9',state:mode==='cached'?'stale':'reachable'}];
+  if(mode==='ambiguous')neighbors.push({mac:'02:00:00:00:00:10',device:'br-lan',address:'2001:db8::9',state:'reachable'});
+  const data=lanSnapshot({neighbors});data[7].value.dhcp6_leases=[{duid:'00030001020000000009',hostname:'Unconfirmed',ip6addr:mode==='unknown'?'2001:db8::99':'2001:db8::9'}];
+  if(mode==='stale-lease')data[7].at=1000;if(mode==='stale-inventory')data[8].at=1000;if(mode==='stale-interface')data[2].at=1000;
+  f.view.render(data);assert.equal(f.view.knownNodes['dhcp/'+mac].title.textContent,mac,mode);
+  assert.equal(f.view.clientRecords.length,mode==='ambiguous'?2:1,mode);
+ }
+});
+test('same hostname and conflicting MAC evidence never collapse separate interfaces',()=>{
+ const f=fixture(),mac='02:00:00:00:00:09',other='02:00:00:00:00:10',data=lanSnapshot({neighbors:[{mac:other,device:'br-lan',address:'2001:db8::9',state:'reachable'}]});
+ data[7].value.dhcp_leases=[{macaddr:mac,hostname:'Desktop',ipaddr:'192.0.2.9'}];
+ data[7].value.dhcp6_leases=[{macaddr:other,hostname:'Desktop',ip6addr:'2001:db8::9'}];
+ f.view.render(data);assert.equal(f.view.clientRecords.length,2);
+ assert.equal(f.view.knownNodes['dhcp/'+mac].address.textContent,'192.0.2.9');
+ assert.equal(f.view.knownNodes['dhcp/'+other].address.textContent,'2001:db8::9');
+});
+
+function namedSnapshot(names={},at=100000) {
+ const data=lanSnapshot({neighbors:[{mac:'02:00:00:00:00:09',device:'br-lan',address:'192.0.2.9',state:'reachable'}]},at);
+ data[8].value.names=names;return data;
+}
+async function openName(f,key='known/dhcp/02:00:00:00:00:09') {
+ const editor=f.view.nameEditors[key];editor.toggle.click();await new Promise(resolve=>setImmediate(resolve));return editor;
+}
+test('manual name takes priority by MAC, survives IP changes and never creates phantom clients',()=>{
+ const f=fixture(),data=namedSnapshot({'02:00:00:00:00:09':'Мой ПК','02:00:00:00:00:AA':'Missing'});data[7].value.dhcp_leases=[{macaddr:'02:00:00:00:00:09',hostname:'DHCP',ipaddr:'192.0.2.9'}];
+ const root=f.view.render(data);assert.equal(f.view.clientRecords.length,1);assert.equal(f.view.clientRecords[0].name,'Мой ПК');assert.match(root.textContent,/Ручное имя/);assert.equal(f.calls.length,0);
+ data[8].value.neighbors[0].address='192.0.2.90';data[7].value.dhcp_leases[0].ipaddr='192.0.2.90';f.view.update(root,data);assert.equal(f.view.clientRecords[0].name,'Мой ПК');assert.match(root.textContent,/192.0.2.90/);
+});
+test('manual editor verifies permission, saves through narrow RPC and removes only explicit alias',async()=>{
+ const f=fixture();f.replies['session.access']=true;f.view.render(namedSnapshot());const editor=await openName(f);
+ assert.equal(editor.save.disabled,false);assert.equal(editor.input.disabled,false);editor.input.value='Домашний ПК';editor.dirty=true;
+ f.replies['rmm.dashboard.set_name']={names:{'02:00:00:00:00:09':'Домашний ПК'}};await f.view.saveClientName(editor,editor.input.value);
+ assert.equal(f.view.clientRecords[0].name,'Домашний ПК');assert.equal(editor.notice.textContent,'Имя сохранено');
+ assert.deepEqual(f.calls.find(call=>call[1]==='set_name'),['rmm.dashboard','set_name',['02:00:00:00:00:09','Домашний ПК','']]);
+ f.replies['rmm.dashboard.set_name']={names:{}};await f.view.saveClientName(editor,'');assert.equal(f.view.sources[8].value.names['02:00:00:00:00:09'],undefined);
+ assert.equal(editor.pending,false);assert.equal(f.view.clientRecords[0].name,'02:00:00:00:00:09');
+});
+test('read-only access and unavailable storage cannot submit client names',async()=>{
+ const f=fixture();f.view.render(namedSnapshot());const editor=await openName(f);assert.equal(editor.save.disabled,true);assert.match(editor.notice.textContent,/только для чтения/);
+ await f.view.saveClientName(editor,'Forbidden');assert.equal(f.calls.filter(call=>call[1]==='set_name').length,0);
+ f.replies['session.access']=true;editor.toggle.click();await openName(f);f.view.sources[8].value.names_error='broken';f.view.syncNameEditor(editor);assert.equal(editor.save.disabled,true);assert.match(editor.notice.textContent,/Хранилище/);
+});
+test('poll retains unsaved editor input; concurrent save error preserves draft and previous name',async()=>{
+ const f=fixture();f.replies['session.access']=true;const root=f.view.render(namedSnapshot({'02:00:00:00:00:09':'Original'}));const editor=await openName(f);const input=editor.input;
+ input.value='My draft';editor.dirty=true;f.time(130000);f.view.update(root,namedSnapshot({'02:00:00:00:00:09':'Other session'},130000));
+ assert.equal(editor.input,input);assert.equal(input.value,'My draft');assert.equal(editor.previous,'Original');
+ f.replies['rmm.dashboard.set_name']={error:'Client name changed; refresh before saving'};await f.view.saveClientName(editor,input.value);
+ assert.equal(input.value,'My draft');assert.match(editor.notice.textContent,/другой сессии/);assert.equal(f.view.clientRecords[0].name,'Other session');
+});
+test('pending name saves are deduplicated; malformed and control-character names are not sent',async()=>{
+ const f=fixture();f.replies['session.access']=true;f.view.render(namedSnapshot());const editor=await openName(f);
+ await f.view.saveClientName(editor,'Bad\nName');await f.view.saveClientName(editor,'я'.repeat(129));assert.equal(f.calls.filter(call=>call[1]==='set_name').length,0);
+ let complete;f.replies['rmm.dashboard.set_name']=new Promise(resolve=>complete=resolve);const pending=f.view.saveClientName(editor,'Good');assert.equal(editor.input.disabled,true);
+ await f.view.saveClientName(editor,'Duplicate');complete({names:{'02:00:00:00:00:09':'Good'}});await pending;assert.equal(f.calls.filter(call=>call[1]==='set_name').length,1);assert.equal(editor.input.disabled,false);
+});
+test('malformed manual map and names are ignored without interpreting HTML',()=>{
+ const f=fixture(),data=namedSnapshot({'02:00:00:00:00:09':'<img src=x>','FF:FF:FF:FF:FF:FF':'Bad'});const root=f.view.render(data);
+ assert.equal(f.view.clientRecords[0].name,'<img src=x>');assert.equal(root.querySelector('img'),null);
+ data[8].value.names={'02:00:00:00:00:09':'\ud800'};assert.doesNotThrow(()=>f.view.update(root,data));assert.equal(f.view.clientRecords[0].name,'02:00:00:00:00:09');
+});
+test('DNS is opt-in, uses router resolver in background, caches names and yields to DHCP/manual names',async()=>{
+ const f=fixture(),data=namedSnapshot();f.view.render(data);assert.equal(f.calls.length,0);assert.equal(f.view.dnsEnabled,false);
+ f.replies['network.rrdns.lookup']={'192.0.2.9':'desktop.lan'};f.view.dnsEnabled=true;await f.view.lookupNames(f.view.clientHosts,100000);
+ assert.equal(f.view.clientRecords[0].name,'desktop.lan');assert.deepEqual(f.calls.find(call=>call[1]==='lookup').slice(0,2),['network.rrdns','lookup']);assert.equal(f.calls[0][2][1],1000);assert.equal(f.calls[0][2][2],8);
+ await f.view.lookupNames(f.view.clientHosts,130000);assert.equal(f.calls.length,1);
+ data[7].value.dhcp_leases=[{macaddr:'02:00:00:00:00:09',hostname:'DHCP',ipaddr:'192.0.2.9'}];f.view.update(f.view.root,data,true);assert.equal(f.view.clientRecords[0].name,'DHCP');
+ data[8].value.names={'02:00:00:00:00:09':'Manual'};f.view.update(f.view.root,data,true);assert.equal(f.view.clientRecords[0].name,'Manual');
+});
+test('DNS batches at most eight unique safe addresses, refuses ambiguous owners, and bounds cache',async()=>{
+ const f=fixture();f.view.render(namedSnapshot());f.view.dnsEnabled=true;const hosts={};
+ for(let n=1;n<=20;n++)hosts['02:00:00:00:01:'+n.toString(16).padStart(2,'0').toUpperCase()]={addresses:['192.0.2.'+n]};
+ hosts['02:00:00:00:02:01']={addresses:['fe80::1','ff02::1','127.0.0.1','169.254.1.2','invalid','192.0.2.1'],name:'DHCP',nameSource:'DHCPv4'};
+ f.replies['network.rrdns.lookup']={};await f.view.lookupNames(hosts,100000);const args=f.calls.find(call=>call[1]==='lookup')[2];assert.equal(args[0].length,8);assert.equal(args[0].includes('192.0.2.1'),false);assert.equal(args[0].some(ip=>ip.includes(':')),false);
+ for(let n=0;n<256;n++)f.view.dnsCache.set('old/'+n,{name:'old',expires:900000});await f.view.lookupNames(hosts,100000);assert.equal(f.view.dnsCache.size,256);
+});
+test('DNS negative cache expires, canonical IPv6 replies match and unrelated responses are ignored',async()=>{
+ const f=fixture(),data=lanSnapshot({neighbors:[{mac:'02:00:00:00:00:09',device:'br-lan',address:'2001:db8::9',state:'reachable'}]});f.view.render(data);f.view.dnsEnabled=true;
+ f.replies['network.rrdns.lookup']={'192.0.2.99':'Wrong','2001:db8:0:0:0:0:0:9':'Bad<script>'};await f.view.lookupNames(f.view.clientHosts,100000);assert.equal(f.view.clientRecords[0].name,'02:00:00:00:00:09');
+ await f.view.lookupNames(f.view.clientHosts,110000);assert.equal(f.calls.length,1);
+ f.time(230000);f.view.sources.forEach(source=>source.at=230000);f.replies['network.rrdns.lookup']={'2001:db8:0:0:0:0:0:9':'nas.lan.'};await f.view.lookupNames(f.view.clientHosts,230000);assert.equal(f.view.clientRecords[0].name,'nas.lan');
+});
+test('DNS disable discards in-flight results and stale source cannot schedule queries',async()=>{
+ const f=fixture();f.view.render(namedSnapshot());f.view.dnsEnabled=true;let complete;f.replies['network.rrdns.lookup']=new Promise(resolve=>complete=resolve);
+ const pending=f.view.lookupNames(f.view.clientHosts,100000);assert.equal(f.view.lookupNames(f.view.clientHosts,100000),undefined);assert.equal(f.calls.length,1);
+ f.view.dnsEnabled=false;f.view.dnsGeneration++;complete({'192.0.2.9':'Late'});await pending;assert.equal(f.view.dnsCache.size,0);
+ f.view.dnsEnabled=true;f.view.sources[8].error={code:6};await f.view.lookupNames(f.view.clientHosts,100000);assert.equal(f.calls.length,1);
+});
+test('DNS cache is tied to both MAC and IP and failure never blocks telemetry',async()=>{
+ const f=fixture();f.view.render(namedSnapshot());f.view.dnsEnabled=true;f.replies['network.rrdns.lookup']=new Error('offline');await f.view.lookupNames(f.view.clientHosts,100000);assert.equal(f.view.dnsStatus.textContent,'Имена из DNS недоступны');assert.equal(f.view.retry.disabled,false);
+ f.view.dnsCache.set('02:00:00:00:00:09/192.0.2.9',{name:'Old owner',expires:900000});const newHost={addresses:['192.0.2.9']};f.view.decorateClient('02:00:00:00:00:10',newHost,100000);assert.equal(newHost.name,undefined);
+});
+
+test('DNS rotates batches so missing PTR records cannot starve later clients',async()=>{
+ const f=fixture();f.view.render(namedSnapshot());f.view.dnsEnabled=true;const hosts={};
+ for(let n=1;n<=48;n++)hosts['02:00:00:00:01:'+n.toString(16).padStart(2,'0').toUpperCase()]={addresses:['192.0.2.'+n]};
+ f.replies['network.rrdns.lookup']={};
+ for(let cycle=0;cycle<6;cycle++){const now=100000+cycle*30000;f.time(now);f.view.sources.forEach(source=>source.at=now);await f.view.lookupNames(hosts,now);}
+ const addresses=new Set(f.calls.filter(call=>call[1]==='lookup').flatMap(call=>Array.from(call[2][0])));assert.equal(addresses.size,48);
+});
+
+test('local vendor lookup skips local MACs, stays offline, labels details and supports search',async()=>{
+ const f=fixture(),data=lanSnapshot({neighbors:[{mac:'00:1B:21:00:00:09',device:'br-lan',address:'192.0.2.9',state:'reachable'}]});
+ f.replies['rmm.dashboard.vendors']={vendors:{'00:1B:21:00:00:09':'Intel Corporate'}};f.view.render(data);await f.view.vendorPending;
+ assert.match(f.view.knownNodes['dhcp/00:1B:21:00:00:09'].body.textContent,/Intel Corporate/);assert.equal(f.calls.filter(call=>call[1]==='vendors').length,1);assert.equal(f.calls.some(call=>call[0]==='network.rrdns'),false);
+ f.view.clientSearch.value='intel';f.view.filterStations();assert.equal(f.view.clientRecords[0].node.hidden,false);
+ await f.view.lookupVendors(130000);assert.equal(f.calls.filter(call=>call[1]==='vendors').length,1);
+ assert.equal(f.view.vendorText('02:1B:21:00:00:09'),'Локально назначенный MAC');
+});
+test('vendor lookup failure is optional and database text stays safe',async()=>{
+ const f=fixture(),data=lanSnapshot({neighbors:[{mac:'00:1B:21:00:00:09',device:'br-lan',address:'192.0.2.9',state:'reachable'}]});f.replies['rmm.dashboard.vendors']=new Error('missing');const root=f.view.render(data);await f.view.vendorPending;
+ assert.equal(f.view.status.textContent,'Актуально');assert.match(root.textContent,/Локальная база производителей недоступна/);
+ f.view.vendorPrefixes.set('00:1B:21','<script>');f.view.update(root,f.view.sources,true);assert.equal(root.querySelector('script'),null);
+});
+test('client journal records first/last observations, IP and path changes, bounded events and one physical MAC',()=>{
+ const f=fixture(),data=namedSnapshot();data[8].value.fdb=[{mac:'02:00:00:00:00:09',bridge:'br-lan',port:'lan2'}];const root=f.view.render(data),mac='02:00:00:00:00:09';
+ const first=f.view.clientJournal.get(mac);assert.equal(first.first,100000);assert.equal(first.last,100000);assert.equal(first.events.length,1);
+ f.time(130000);const changed=namedSnapshot({},130000);changed[8].value.neighbors[0].address='192.0.2.99';changed[8].value.fdb=[{mac,bridge:'br-lan',port:'lan3'}];f.view.update(root,changed);
+ assert.equal(first.first,100000);assert.equal(first.last,130000);assert.equal(first.events.filter(event=>event.type==='IP addresses changed').length,1);assert.equal(first.events.filter(event=>event.type==='Connection path changed').length,1);
+ f.view.update(root,f.view.sources,true);assert.equal(first.events.length,3);
+ for(let cycle=0;cycle<40;cycle++){const at=160000+cycle*30000;f.time(at);const next=namedSnapshot({},at);next[8].value.neighbors[0].address='192.0.2.'+(cycle+1);f.view.update(root,next);}
+ assert.equal(first.events.length,32);assert.ok(f.view.journalList.children.length<=30);
+});
+test('journal source failure and truncated inventory do not invent disappearance; recovery records absence and reappearance',()=>{
+ const f=fixture(),root=f.view.render(namedSnapshot()),mac='02:00:00:00:00:09',entry=f.view.clientJournal.get(mac);
+ f.time(130000);f.view.update(root,snapshot(130000,{8:{error:{code:6}}}));assert.equal(entry.present,true);assert.equal(entry.last,100000);
+ f.time(160000);f.view.update(root,snapshot(160000,{8:{at:160000,value:{fdb:[],neighbors:[],truncated:true}}}));assert.equal(entry.present,true);
+ f.time(190000);f.view.update(root,snapshot(190000));assert.equal(entry.present,false);assert.equal(entry.events.at(-1).type,'No longer reported');
+ f.time(220000);f.view.update(root,namedSnapshot({},220000));assert.equal(entry.present,true);assert.equal(entry.events.some(event=>event.type==='Observed again'),true);
+ assert.equal(f.storage.has('rmm-dashboard-client-history'),false);
+});
+test('nlbwmon counters are per MAC, rates survive repaint, reset/gaps/reboot invalidate averages',()=>{
+ const f=fixture(),mac='02:00:00:00:00:09';function sample(at,rx,tx){const data=namedSnapshot({},at);data[8].value.traffic={status:'current',source:'nlbwmon',at:at/1000,clients:{[mac]:{rx_bytes:rx,tx_bytes:tx},'02:00:00:00:00:AA':{rx_bytes:90000,tx_bytes:90000}}};return data;}
+ const root=f.view.render(sample(100000,1000,2000));assert.equal(f.view.clientRecords.length,1);
+ f.time(130000);f.view.update(root,sample(130000,31000,17000));const body=f.view.knownNodes['dhcp/'+mac].body;assert.match(body.textContent,/1000 B\/s \/ 500 B\/s/);
+ f.view.update(root,f.view.sources,true);assert.match(body.textContent,/1000 B\/s \/ 500 B\/s/);
+ f.time(160000);f.view.update(root,sample(160000,1,1));assert.equal(f.view.clientTraffic.get(mac).rates,null);
+ f.time(250000);f.view.update(root,sample(250000,4000,4000));assert.equal(f.view.clientTraffic.get(mac).rates,null);
+ f.time(280000);const reboot=sample(280000,8000,8000);reboot[1].value.uptime=1;f.view.update(root,reboot);assert.equal(f.view.clientTraffic.get(mac).rates,null);
+});
+test('missing and stale traffic never becomes zero usage or affects core telemetry state',()=>{
+ const f=fixture(),root=f.view.render(namedSnapshot()),mac='02:00:00:00:00:09';assert.match(f.view.knownNodes['dhcp/'+mac].body.textContent,/Учёт трафика недоступен/);assert.equal(f.view.status.textContent,'Актуально');
+ const data=namedSnapshot();data[8].value.traffic={status:'current',at:1,clients:{[mac]:{rx_bytes:100,tx_bytes:100}}};f.view.update(root,data);assert.match(f.view.knownNodes['dhcp/'+mac].body.textContent,/Принято \/ отправлено за период учётаУстаревшие данные/);
+});
+test('network previews use current manual names, group validated ports and open client inspector without telemetry requests',()=>{
+ const f=fixture(),data=namedSnapshot({'02:00:00:00:00:09':'My desktop'});data[8].value.fdb=[{mac:'02:00:00:00:00:09',bridge:'br-lan',port:'lan3'}];const root=f.view.render(data);
+ const preview=f.view.slots.topology.querySelector('.rmm-dashboard-client-preview button');assert.equal(preview.textContent,'My desktop');const calls=f.calls.length;let opened;
+ f.view.openDetails=(key,title)=>{opened={key,title};return true;};preview.click();assert.equal(opened.key,'known/dhcp/02:00:00:00:00:09');assert.equal(opened.title,'My desktop');assert.equal(f.calls.length,calls);
+ data[8].value.names['02:00:00:00:00:09']='Renamed';f.view.update(root,data,true);assert.equal(f.view.slots.topology.querySelector('.rmm-dashboard-client-preview button'),preview);assert.equal(preview.textContent,'Renamed');
+});
+
+test('same MAC on two SSIDs keeps distinct preview buttons and the selected interface',()=>{
+ const f=fixture(),mac='02:00:00:00:00:01',data=wirelessSnapshot();
+ const first=data[6].value.interfaces[0];const second=JSON.parse(JSON.stringify(first));second.device='phy1-ap0';second.info.value.ssid='Other';data[6].value.interfaces.push(second);
+ f.view.render(data);let selected;f.view.openStation=key=>selected=key;
+ const a=f.view.clientPreview([mac],null,first.device).querySelector('button');const b=f.view.clientPreview([mac],null,second.device).querySelector('button');
+ assert.ok(a);assert.ok(b);assert.notEqual(a,b);b.click();assert.equal(selected,second.device+'/'+mac);a.click();assert.equal(selected,first.device+'/'+mac);
 });

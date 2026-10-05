@@ -3,7 +3,7 @@
 This repository holds two independent LuCI packages:
 
 - `luci-theme-rmm`: a dark, compact theme matching the RMM design system.
-- `luci-app-rmm-dashboard`: a read-only local router and RMM agent overview.
+- `luci-app-rmm-dashboard`: a local router and RMM agent overview with optional client display names.
 
 The theme uses the official LuCI Bootstrap menu and login modules. It does not
 activate itself or change network settings. The dashboard works with any LuCI
@@ -316,3 +316,17 @@ remains in GitHub Actions. See [LuCI 0.8.0 release notes](docs/release-0.8.0.md)
 
 Compact network relationships with measured responsive connectors and a native RTNL
 constant namespace fix for passive client discovery. See [release notes](docs/release-0.9.0.md).
+
+## Client identity and display names
+
+DHCP, ARP/NDP and FDB records are combined by validated MAC. Client details support
+persistent manual names with a dedicated write ACL. Optional background reverse
+DNS is disabled by default and uses `rpcd-mod-rrdns`. Preserve
+`/etc/rmm-dashboard/` in backups. See [client identity matching](docs/client-identity-matching.md)
+for configuration, limits, failure handling and verification.
+
+## LuCI 0.10.0
+
+Persistent client names and optional background reverse DNS. See [release notes](docs/release-0.10.0.md).
+
+Client insights: [manufacturer registry, observation history, optional nlbwmon and network previews](docs/client-insights.md).

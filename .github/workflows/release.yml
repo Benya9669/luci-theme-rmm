@@ -38,10 +38,12 @@ jobs:
           git -C "$RUNNER_TEMP/rmm-ucode" checkout --detach FETCH_HEAD
           cmake -S "$RUNNER_TEMP/rmm-ucode" -B "$RUNNER_TEMP/rmm-ucode/build" -DFS_SUPPORT=ON -DRTNL_SUPPORT=OFF -DNL80211_SUPPORT=OFF -DUBUS_SUPPORT=OFF -DUCI_SUPPORT=OFF -DULOOP_SUPPORT=OFF -DRESOLV_SUPPORT=OFF -DLOG_SUPPORT=OFF -DDIGEST_SUPPORT=OFF -DDEBUG_SUPPORT=OFF
           cmake --build "$RUNNER_TEMP/rmm-ucode/build" --parallel 2
+          "$RUNNER_TEMP/rmm-ucode/build/ucode" -L "$RUNNER_TEMP/rmm-ucode/build" tests/insights.uc
+          "$RUNNER_TEMP/rmm-ucode/build/ucode" -L "$RUNNER_TEMP/rmm-ucode/build" tests/names.uc
           "$RUNNER_TEMP/rmm-ucode/build/ucode" tests/clients.uc
           "$RUNNER_TEMP/rmm-ucode/build/ucode" -L "$RUNNER_TEMP/rmm-ucode/build" -L "$GITHUB_WORKSPACE/tests/fixtures/rpcd" tests/rpcd.uc
           RMM_RPC_ERROR=1 "$RUNNER_TEMP/rmm-ucode/build/ucode" -L "$RUNNER_TEMP/rmm-ucode/build" -L "$GITHUB_WORKSPACE/tests/fixtures/rpcd" tests/rpcd.uc
-          "$RUNNER_TEMP/rmm-ucode/build/ucode" -c,dynlink=rtnl,dynlink=fs -o "$RUNNER_TEMP/rmm-dashboard.ucb" packages/luci-app-rmm-dashboard/root/usr/share/rpcd/ucode/rmm-dashboard
+          "$RUNNER_TEMP/rmm-ucode/build/ucode" -L "$RUNNER_TEMP/rmm-ucode/build" -c,dynlink=rtnl,dynlink=fs -o "$RUNNER_TEMP/rmm-dashboard.ucb" packages/luci-app-rmm-dashboard/root/usr/share/rpcd/ucode/rmm-dashboard
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - uses: actions/upload-artifact@v4
