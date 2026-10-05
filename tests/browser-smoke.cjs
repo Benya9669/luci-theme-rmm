@@ -27,7 +27,7 @@ const {server}=require('./browser-fixture.cjs');
    await page.locator('.rmm-dashboard-layout > summary').click();await page.locator('.rmm-dashboard-layout > button').click();
    assert.equal(await page.locator('.rmm-dashboard-network-path').isVisible(),true);
    await page.locator('#rmm-client-type').selectOption('dhcp');assert.equal(await page.locator('.rmm-dashboard-station:not([hidden])').count(),1);
-   await page.locator('#rmm-client-type').selectOption('wired');assert.equal(await page.locator('.rmm-dashboard-station:not([hidden])').count(),1);assert.match(await page.locator('.rmm-dashboard-station:not([hidden]) summary').innerText(),/lan3/);
+   await page.locator('#rmm-client-type').selectOption('wired');assert.equal(await page.locator('.rmm-dashboard-station:not([hidden])').count(),1);assert.match(await page.locator('.rmm-dashboard-station:not([hidden]) > .rmm-dashboard-station-details > summary').innerText(),/lan3/);
    await page.locator('#rmm-client-type').selectOption('neighbor');assert.equal(await page.locator('.rmm-dashboard-station:not([hidden])').count(),1);
    await page.locator('#rmm-client-type').selectOption('all');
    // Manual name editing exercises the real DOM/form semantics with fixture-only RPC.
