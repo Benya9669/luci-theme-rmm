@@ -216,7 +216,8 @@ test('wireless RPC fanout deduplicates interfaces and never probes, scans or rea
  assert.equal(f.calls.filter(x=>x[0]==='iwinfo' && x[1]==='assoclist').length,2);
  assert.equal(f.calls.filter(x=>x[0]==='luci-rpc').length,1);
  assert.ok(f.calls.every(x=>!['scan','getHostHints','set','apply'].includes(x[1])));
- assert.ok(f.calls.filter(x=>x[0]==='uci').every(x=>x[2][0]==='rmm-agent'));
+ assert.equal(f.calls.some(x=>x[0]==='uci'),false);
+ assert.ok(f.calls.some(x=>x[0]==='rmm.dashboard' && x[1]==='agent_status'));
 });
 test('missing wireless RPC and malformed stations remain explicit without reporting a false empty list',()=>{
  const f=fixture(),root=f.view.render(snapshot(100000,{6:{error:{code:6}}}));
@@ -232,7 +233,7 @@ test('Wi-Fi ACL permits only the required read methods and local DHCP leases',()
  const acl=JSON.parse(fs.readFileSync('packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json','utf8'));
  const entry=Object.values(acl)[0];assert.deepEqual(entry.write,{ubus:{'rmm.dashboard':['set_name']}});assert.deepEqual(entry.read.ubus['network.rrdns'],['lookup']);
  assert.deepEqual(entry.read.ubus.iwinfo,['devices','info','assoclist']);assert.deepEqual(entry.read.ubus['luci-rpc'],['getDHCPLeases']);
- assert.deepEqual(entry.read.uci,['rmm-agent']);
+ assert.equal(entry.read.uci,undefined);
 });
 
 
@@ -525,8 +526,8 @@ test('Wi-Fi association takes priority over matching Ethernet FDB and gets neigh
  const f=fixture(),data=lanSnapshot({fdb:[{mac:'02:00:00:00:00:01',bridge:'br-lan',port:'lan2',link_up:true}],neighbors:[{mac:'02:00:00:00:00:01',device:'br-lan',address:'192.0.2.10',state:'reachable'}]});data[6].value={interfaces:[{device:'phy0-ap0',info:{at:100000,value:{ssid:'Office',frequency:2412}},stations:{at:100000,value:{results:[{mac:'02:00:00:00:00:01',signal:-45}]}}}]};f.view.render(data);assert.equal(f.view.clientRecords.length,1);assert.equal(f.view.clientRecords[0].type,'wifi');assert.equal(Object.keys(f.view.knownNodes).length,0);assert.match(f.view.stationNodes['phy0-ap0/02:00:00:00:00:01'].body.textContent,/192.0.2.10/);
 });
 test('passive inventory RPC deduplicates refresh, reports errors and has read-only ACL',async()=>{
- const f=fixture();f.replies['rmm.dashboard.clients']={fdb:[],neighbors:[]};await Promise.all([f.view.load(),f.view.load()]);assert.equal(f.calls.filter(call=>call[0]==='rmm.dashboard').length,1);f.replies['rmm.dashboard.clients']={error:'Kernel table unavailable'};const next=await f.view.load();assert.ok(next[8].error);
- const acl=JSON.parse(fs.readFileSync('packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json','utf8'))['luci-app-rmm-dashboard'];assert.deepEqual(acl.read.ubus['rmm.dashboard'],['clients','vendors']);assert.deepEqual(acl.write,{ubus:{'rmm.dashboard':['set_name']}});assert.equal(acl.write.uci,undefined);
+ const f=fixture();f.replies['rmm.dashboard.clients']={fdb:[],neighbors:[]};await Promise.all([f.view.load(),f.view.load()]);assert.equal(f.calls.filter(call=>call[0]==='rmm.dashboard' && call[1]==='clients').length,1);f.replies['rmm.dashboard.clients']={error:'Kernel table unavailable'};const next=await f.view.load();assert.ok(next[8].error);
+ const acl=JSON.parse(fs.readFileSync('packages/luci-app-rmm-dashboard/root/usr/share/rpcd/acl.d/luci-app-rmm-dashboard.json','utf8'))['luci-app-rmm-dashboard'];assert.deepEqual(acl.read.ubus['rmm.dashboard'],['agent_status','clients','vendors']);assert.deepEqual(acl.write,{ubus:{'rmm.dashboard':['set_name']}});assert.equal(acl.write.uci,undefined);
 });
 
 test('FDB VLAN observations only match the explicit local VLAN and exclude routed uplinks',()=>{

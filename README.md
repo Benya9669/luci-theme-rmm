@@ -12,6 +12,11 @@ Internet connectivity test.
 
 ## Build
 
+The dashboard reads only the enable flag and the two polling intervals through
+`rmm.dashboard.agent_status`. The dashboard role grants no read access to the
+agent UCI configuration. After updating the package and reloading rpcd, verify
+the three returned fields with `ubus call rmm.dashboard agent_status`.
+
 Copy `packages/luci-theme-rmm` and `packages/luci-app-rmm-dashboard` into the
 `package/` directory of an OpenWrt buildroot or matching SDK. Install the
 `luci-base`, `luci-mod-status`, and `luci-theme-bootstrap` feeds first. Then:
